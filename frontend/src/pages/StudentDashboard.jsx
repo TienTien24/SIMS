@@ -68,43 +68,61 @@ const StudentDashboard = () => {
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <h1>Student Dashboard</h1>
+        <h1>Bảng điều khiển sinh viên</h1>
         <div className="user-info">
-          <span>Xin chào, {user.fullName}</span>
-          <button onClick={handleLogout} className="logout-btn">Đăng xuất</button>
+          <span>{user.fullName}</span>
+          <button onClick={handleLogout} className="logout-btn">
+            Đăng xuất
+          </button>
         </div>
       </header>
 
       <main className="dashboard-main">
-        <div className="welcome-section">
-          <h2>Chào mừng bạn đến với hệ thống quản lý sinh viên!</h2>
-          <p>Email: {user.email}</p>
-          <p>Vai trò: {user.role}</p>
-        </div>
+        <section className="welcome-section">
+          <h2>Xin chào, {user.fullName} 👋</h2>
+          <p>
+            Email: <strong>{user.email}</strong> · Vai trò hệ thống:{' '}
+            <strong>{user.role === 'student' ? 'Sinh viên' : user.role}</strong>
+          </p>
+          <ul>
+            <li>Theo dõi tiến độ học tập và điểm số theo thời gian thực.</li>
+            <li>Đăng ký học phần, xem lịch học, lịch thi và thông báo quan trọng.</li>
+            <li>Tra cứu công nợ học phí, cập nhật hồ sơ cá nhân nhanh chóng.</li>
+          </ul>
+        </section>
 
-        <div className="dashboard-cards">
-          <div className="info-card">
-            <h3>Thông tin cá nhân</h3>
-            <p>Họ tên: {user.fullName}</p>
-            <p>Email: {user.email}</p>
-            <p>MSSV: {user.studentId || 'Chưa cập nhật'}</p>
-          </div>
+        <section className="dashboard-cards">
+          <article className="info-card">
+            <h3>Hồ sơ học tập</h3>
+            <div className="info-item">
+              <strong>Họ tên</strong>
+              <span>{user.fullName}</span>
+            </div>
+            <div className="info-item">
+              <strong>Email</strong>
+              <span>{user.email}</span>
+            </div>
+            <div className="info-item">
+              <strong>MSSV</strong>
+              <span>{user.studentId || 'Chưa cập nhật'}</span>
+            </div>
+          </article>
 
-          <div className="info-card">
-            <h3>Chức năng</h3>
+          <article className="info-card">
+            <h3>Tác vụ nổi bật</h3>
             <ul>
-              <li>📚 Xem thời khóa biểu</li>
-              <li>📊 Xem điểm</li>
-              <li>📝 Đăng ký học phần</li>
-              <li>💰 Thanh toán học phí</li>
+              <li>Xem và tải thời khóa biểu cá nhân.</li>
+              <li>Đăng ký / hủy học phần trong thời gian cho phép.</li>
+              <li>Tra cứu kết quả học tập, điểm rèn luyện.</li>
+              <li>Thanh toán học phí và xem lịch sử giao dịch.</li>
             </ul>
-          </div>
+          </article>
 
-          <div className="info-card">
-            <h3>Thông báo</h3>
-            <p>Chưa có thông báo mới.</p>
-          </div>
-        </div>
+          <article className="info-card">
+            <h3>Thông báo mới nhất</h3>
+            <p>Chưa có thông báo nào. Vui lòng kiểm tra lại sau.</p>
+          </article>
+        </section>
       </main>
     </div>
   );

@@ -68,58 +68,76 @@ const StaffDashboard = () => {
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <h1>Staff Dashboard</h1>
+        <h1>Bảng điều khiển giảng viên</h1>
         <div className="user-info">
-          <span>Xin chào, {user.fullName}</span>
-          <button onClick={handleLogout} className="logout-btn">Đăng xuất</button>
+          <span>{user.fullName}</span>
+          <button onClick={handleLogout} className="logout-btn">
+            Đăng xuất
+          </button>
         </div>
       </header>
 
       <main className="dashboard-main">
-        <div className="welcome-section">
-          <h2>Chào mừng bạn đến với trang giảng viên!</h2>
-          <p>Email: {user.email}</p>
-          <p>Vai trò: {user.role}</p>
-        </div>
+        <section className="welcome-section">
+          <h2>Xin chào, {user.fullName}!</h2>
+          <p>
+            Email: <strong>{user.email}</strong> · Vai trò:{' '}
+            <strong>{user.role === 'lecturer' ? 'Giảng viên' : user.role}</strong>
+          </p>
+          <ul>
+            <li>Quản lý danh sách lớp, điểm danh và cập nhật kết quả học tập.</li>
+            <li>Lên lịch giảng dạy, soạn thảo tài liệu và giao bài tập trực tuyến.</li>
+            <li>Trao đổi với sinh viên, gửi thông báo và nhắc nhở quan trọng.</li>
+          </ul>
+        </section>
 
-        <div className="dashboard-cards">
-          <div className="info-card">
-            <h3>Thông tin cá nhân</h3>
-            <p>Họ tên: {user.fullName}</p>
-            <p>Email: {user.email}</p>
-            <p>Mã giảng viên: {user.staffId || 'Chưa cập nhật'}</p>
-          </div>
+        <section className="dashboard-cards">
+          <article className="info-card">
+            <h3>Thông tin giảng viên</h3>
+            <div className="info-item">
+              <strong>Họ tên</strong>
+              <span>{user.fullName}</span>
+            </div>
+            <div className="info-item">
+              <strong>Email</strong>
+              <span>{user.email}</span>
+            </div>
+            <div className="info-item">
+              <strong>Mã GV</strong>
+              <span>{user.staffId || 'Chưa cập nhật'}</span>
+            </div>
+          </article>
 
-          <div className="info-card">
+          <article className="info-card">
             <h3>Quản lý lớp học</h3>
             <ul>
-              <li>📋 Xem danh sách lớp</li>
-              <li>✅ Điểm danh sinh viên</li>
-              <li>📊 Nhập điểm</li>
-              <li>📈 Thống kê điểm</li>
+              <li>Danh sách lớp theo kỳ học và chương trình đào tạo.</li>
+              <li>Điểm danh tự động, đồng bộ thời gian thực.</li>
+              <li>Nhập điểm, theo dõi tiến độ học tập của lớp.</li>
+              <li>Thống kê kết quả cuối kỳ và phân tích dữ liệu.</li>
             </ul>
-          </div>
+          </article>
 
-          <div className="info-card">
-            <h3>Thời khóa biểu</h3>
-            <p>Lịch giảng dạy của bạn sẽ hiển thị ở đây.</p>
-          </div>
+          <article className="info-card">
+            <h3>Thời khóa biểu cá nhân</h3>
+            <p>Lịch giảng dạy sẽ hiển thị ngay khi được phòng đào tạo xác nhận.</p>
+          </article>
 
-          <div className="info-card">
+          <article className="info-card">
             <h3>Thông báo</h3>
-            <p>Chưa có thông báo mới.</p>
-          </div>
-        </div>
+            <p>Hiện chưa có thông báo mới. Hãy kiểm tra lại sau.</p>
+          </article>
+        </section>
 
-        <div className="quick-actions">
-          <h3>Chức năng nhanh</h3>
+        <section className="quick-actions">
+          <h3>Tác vụ nhanh</h3>
           <div className="action-buttons">
             <button className="action-btn">Tạo lớp học mới</button>
             <button className="action-btn">Nhập điểm hàng loạt</button>
             <button className="action-btn">Xuất báo cáo</button>
             <button className="action-btn">Gửi thông báo</button>
           </div>
-        </div>
+        </section>
       </main>
     </div>
   );
