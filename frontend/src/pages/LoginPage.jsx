@@ -62,81 +62,110 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-form">
-        <div className="login-header">
-          <img src={logo} alt="Logo" className="logo" />
-          <h2>TRƯỜNG ĐẠI HỌC QUY NHƠN</h2>
-          <h3>ĐĂNG NHẬP</h3>
+    <div className="auth-layout">
+      <div className="auth-card">
+        <div className="auth-header">
+          <img src={logo} alt="Logo Quy Nhơn University" />
+          <h2 className="auth-title">Trường Đại học Quy Nhơn</h2>
+          <p className="auth-subtitle">Đăng nhập hệ thống SIMS</p>
         </div>
-        {error && (
-          <div className="error-message" style={{ 
-            backgroundColor: '#fee', 
-            color: '#c33', 
-            padding: '10px', 
-            marginBottom: '15px', 
-            borderRadius: '4px',
-            border: '1px solid #fcc'
-          }}>
-            {error}
-          </div>
-        )}
-        
-        <form onSubmit={handleLogin}>
+
+        {error && <div className="error-alert">{error}</div>}
+
+        <form className="form-stack" onSubmit={handleLogin}>
           <div className="form-group">
-            <select value={userType} onChange={(e) => setUserType(e.target.value)}>
+            <label htmlFor="userType" className="form-label">
+              Loại tài khoản
+            </label>
+            <select
+              id="userType"
+              value={userType}
+              onChange={(e) => setUserType(e.target.value)}
+              className="form-control"
+            >
               <option value="student">Sinh viên</option>
               <option value="lecturer">Giảng viên</option>
-              <option value="admin">Admin</option>
+              <option value="admin">Quản trị viên</option>
             </select>
           </div>
+
           <div className="form-group">
+            <label htmlFor="loginEmail" className="form-label">
+              Email (Tài khoản)
+            </label>
             <input
-              type="text"
-              placeholder="Email (Tài khoản)"
+              id="loginEmail"
+              type="email"
+              placeholder="name@example.com"
               value={account}
               onChange={(e) => setAccount(e.target.value)}
+              className="form-control"
               required
             />
           </div>
+
           <div className="form-group">
+            <label htmlFor="loginPassword" className="form-label">
+              Mật khẩu
+            </label>
             <input
+              id="loginPassword"
               type="password"
-              placeholder="Mật khẩu"
+              placeholder="Nhập mật khẩu"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="form-control"
               required
             />
           </div>
-          <div className="form-group captcha-group">
-            <input
-              type="text"
-              placeholder="Nhập mã bảo vệ"
-              value={captcha}
-              onChange={(e) => setCaptcha(e.target.value)}
-              required
-            />
-            <div className="captcha-image">Eb.com</div>
+
+          <div className="form-group">
+            <label htmlFor="captcha" className="form-label">
+              Mã bảo vệ
+            </label>
+            <div className="captcha-group">
+              <input
+                id="captcha"
+                type="text"
+                placeholder="Nhập mã bảo vệ"
+                value={captcha}
+                onChange={(e) => setCaptcha(e.target.value)}
+                className="form-control"
+                required
+              />
+              <div className="captcha-badge">Eb.com</div>
+            </div>
+            <p className="form-note">* Mã bảo vệ có phân biệt chữ hoa/thường.</p>
           </div>
-          <p className="captcha-note">* Mã bảo vệ phân biệt chữ HOA/chữ thường</p>
-          <button type="submit" className="login-button" disabled={loading}>
+
+          <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
-        
+
         <div className="auth-links">
-          <Link to="/" className="auth-link">Quay lại trang chủ</Link>
-          <Link to="/register" className="auth-link">Chưa có tài khoản? Đăng kí</Link>
+          <Link to="/" className="auth-link">
+            Quay lại trang chủ
+          </Link>
+          <Link to="/register" className="auth-link">
+            Chưa có tài khoản? Đăng ký
+          </Link>
         </div>
-        
-        <div className="forgot-password">
+
+        <div className="support-card">
           <p>Trường hợp quên mật khẩu:</p>
           <ul>
-            <li>- Sinh viên Hệ chính quy: Mang theo thẻ sinh viên liên hệ trực tiếp phòng 101 (Trung tâm Quản lý Hệ thống thông tin)</li>
-            <li>- CB-NV/GV: Quý thầy/cô vui lòng liên hệ trực tiếp phòng 101 (Trung tâm Quản lý Hệ thống thông tin)</li>
+            <li>Sinh viên hệ chính quy: Mang theo thẻ sinh viên liên hệ phòng 101 (Trung tâm QLHTTT).</li>
+            <li>CB-NV/GV: Liên hệ trực tiếp phòng 101 (Trung tâm QLHTTT).</li>
           </ul>
-          <p className="or-separator">--- HOẶC ---</p>
-          <p>Sử dụng email đã được Trường cấp gửi yêu cầu hỗ trợ đến địa chỉ email hotro.qnu.edu.vn hoặc truy cập https://hotro.qnu.edu.vn để gửi yêu cầu hỗ trợ.</p>
+          <div className="support-divider">Hoặc</div>
+          <p>
+            Gửi yêu cầu hỗ trợ qua email hotro@qnu.edu.vn hoặc truy cập{' '}
+            <a href="https://hotro.qnu.edu.vn" target="_blank" rel="noreferrer">
+              https://hotro.qnu.edu.vn
+            </a>
+            .
+          </p>
         </div>
       </div>
     </div>

@@ -78,63 +78,67 @@ const AdminDashboard = () => {
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <h1>Trang Quản Trị</h1>
+        <h1>Bảng điều khiển quản trị</h1>
         <div className="user-info">
-          <span>Xin chào, {user.fullName}</span>
-          <button onClick={handleLogout} className="logout-btn">Đăng xuất</button>
+          <span>{user.fullName}</span>
+          <button onClick={handleLogout} className="logout-btn">
+            Đăng xuất
+          </button>
         </div>
       </header>
-      
-      <main className="dashboard-main">
-        <div className="welcome-section">
-          <h2>Chào mừng bạn đến với hệ thống quản trị!</h2>
-          <p>Đây là trang dành cho quản trị viên. Bạn có thể:</p>
-          <ul>
-            <li>Quản lý người dùng và phân quyền</li>
-            <li>Quản lý khóa học và học phần</li>
-            <li>Xem thống kê và báo cáo</li>
-            <li>Cấu hình hệ thống</li>
-            <li>Giám sát hoạt động hệ thống</li>
-          </ul>
-        </div>
 
-        {/* Thống kê */}
-        <div className="stats-grid">
+      <main className="dashboard-main">
+        <section className="welcome-section">
+          <h2>Xin chào, {user.fullName}</h2>
+          <p>
+            Đây là khu vực dành cho quản trị viên SIMS. Bạn có thể theo dõi hoạt động hệ thống, vận hành
+            nghiệp vụ và hỗ trợ người dùng chỉ với vài thao tác.
+          </p>
+          <ul>
+            <li>Giám sát tình hình đào tạo, tuyển sinh và hoạt động lớp học theo thời gian thực.</li>
+            <li>Quản lý tài khoản người dùng và phân quyền cho từng đơn vị.</li>
+            <li>Tiếp nhận và xử lý yêu cầu hỗ trợ, cấu hình chính sách hệ thống.</li>
+          </ul>
+        </section>
+
+        <section className="stats-grid">
           <div className="stat-card">
             <h3>Sinh viên</h3>
             <div className="stat-number">{stats.totalStudents}</div>
-            <p>Tổng số sinh viên</p>
+            <p>Tổng số hồ sơ sinh viên đang hoạt động</p>
           </div>
           <div className="stat-card">
             <h3>Giảng viên</h3>
             <div className="stat-number">{stats.totalStaff}</div>
-            <p>Tổng số giảng viên</p>
+            <p>Giảng viên và CBNV sử dụng hệ thống</p>
           </div>
           <div className="stat-card">
             <h3>Khóa học</h3>
             <div className="stat-number">{stats.totalCourses}</div>
-            <p>Tổng số khóa học</p>
+            <p>Chương trình đào tạo được số hóa</p>
           </div>
-        </div>
-        
-        <div className="info-card">
-          <h3>Thông tin cá nhân</h3>
-          <div className="info-item">
-            <strong>Họ tên:</strong> {user.fullName}
-          </div>
-          <div className="info-item">
-            <strong>Email:</strong> {user.email}
-          </div>
-          <div className="info-item">
-            <strong>Vai trò:</strong> Quản trị viên
-          </div>
-        </div>
+        </section>
 
-        {/* Hoạt động gần đây */}
-        <div className="info-card">
+        <section className="info-card">
+          <h3>Thông tin quản trị viên</h3>
+          <div className="info-item">
+            <strong>Họ tên</strong>
+            <span>{user.fullName}</span>
+          </div>
+          <div className="info-item">
+            <strong>Email</strong>
+            <span>{user.email}</span>
+          </div>
+          <div className="info-item">
+            <strong>Vai trò</strong>
+            <span>Quản trị viên</span>
+          </div>
+        </section>
+
+        <section className="info-card">
           <h3>Hoạt động gần đây</h3>
           <div className="activity-list">
-            {stats.recentActivities.map(activity => (
+            {stats.recentActivities.map((activity) => (
               <div key={activity.id} className="activity-item">
                 <div className="activity-action">{activity.action}</div>
                 <div className="activity-user">{activity.user}</div>
@@ -142,11 +146,10 @@ const AdminDashboard = () => {
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Chức năng quản trị */}
-        <div className="info-card">
-          <h3>Chức năng quản trị</h3>
+        <section className="info-card">
+          <h3>Tác vụ quản trị nhanh</h3>
           <div className="admin-actions">
             <button className="action-btn admin-btn">Quản lý người dùng</button>
             <button className="action-btn admin-btn">Quản lý khóa học</button>
@@ -155,7 +158,7 @@ const AdminDashboard = () => {
             <button className="action-btn admin-btn">Quản lý phân quyền</button>
             <button className="action-btn admin-btn">Giám sát hệ thống</button>
           </div>
-        </div>
+        </section>
       </main>
     </div>
   );
