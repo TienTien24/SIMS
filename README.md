@@ -1,3 +1,9 @@
+# 🏫 SIMS - Student Information Management System
+
+A Node.js API server for managing student, teacher, and admin data.
+
+---
+
 ## 📁 Project Structure
 ```
 SIMS/
@@ -16,15 +22,22 @@ SIMS/
 │   ├── .env           # Environment variables
 │   ├── package.json
 └── README.md
-``
+```
+---
+
 ## 🛠️ Installation & Running
-Installation
+
+### 1. Install dependencies
 ```bash
+npm install
 npm install cors helmet
 npm install --save-dev nodemon
 npm install joi
---
-Running
-``bash
-npm run dev
+```
 
+### 2. Run server
+```bash
+npm run dev
+```
+
+---
