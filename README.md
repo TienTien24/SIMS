@@ -1,0 +1,30 @@
+## 📁 Project Structure
+```
+SIMS/
+├── backend/           # Node.js API server
+│   ├── db/            # Database modules
+│   ├── src/
+│   │   ├── config/    # Configuration files
+│   │   ├── controllers/ # Request/response logic
+│   │   ├── middlewares/ # Custom middleware
+│   │   ├── models/    # Database models (User.js)
+│   │   ├── routes/    # API routes
+│   │   ├── services/  # Business logic
+│   │   ├── utils/     # Utility functions
+│   │   └── app.js     # Main Express app setup
+│   ├── test/          # Test files
+│   ├── .env           # Environment variables
+│   ├── package.json
+└── README.md
+``
+## 🛠️ Installation & Running
+Installation
+```bash
+npm install cors helmet
+npm install --save-dev nodemon
+npm install joi
+--
+Running
+``bash
+npm run dev
+
