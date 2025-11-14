@@ -1,76 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import '../styles/dashboard.css';
+// src/pages/StaffDashboard.jsx
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { logout } from "../utils/auth";
+import "../styles/dashboard.css";
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const user = JSON.parse(localStorage.getItem("user"));
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          navigate('/login');
-          return;
-        }
-
-        const response = await fetch('http://localhost:4000/api/user/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.data.user);
-        } else {
-          // Nếu token hết hạn hoặc không hợp lệ
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          navigate('/login');
-        }
-      } catch (error) {
-        console.error('Lỗi khi lấy thông tin user:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/login');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [navigate]);
+  // Bảo vệ route
+React.useEffect(() => {
+  if (
+    !user ||
+    (user.role !== "teacher" &&
+      user.role !== "admin")
+  ) {
+    logout();
+    navigate("/login");
+  }
+}, [user, navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/');
+    logout();
+    navigate("/");
   };
 
-  if (loading) {
-    return <div className="dashboard-container">Đang tải...</div>;
-  }
-
-  if (!user) {
-    return <div className="dashboard-container">Không thể tải thông tin người dùng.</div>;
-  }
-
-  // Kiểm tra quyền truy cập - chỉ cho phép lecturer hoặc admin
-  if (user.role !== 'lecturer' && user.role !== 'admin') {
-    navigate('/login');
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
         <h1>Bảng điều khiển giảng viên</h1>
         <div className="user-info">
-          <span>{user.fullName}</span>
+          <span>{user.fullName || user.username}</span>
           <button onClick={handleLogout} className="logout-btn">
             Đăng xuất
           </button>
@@ -79,15 +41,18 @@ const StaffDashboard = () => {
 
       <main className="dashboard-main">
         <section className="welcome-section">
-          <h2>Xin chào, {user.fullName}!</h2>
+          <h2>Xin chào, {user.fullName || user.username}!</h2>
           <p>
-            Email: <strong>{user.email}</strong> · Vai trò:{' '}
-            <strong>{user.role === 'lecturer' ? 'Giảng viên' : user.role}</strong>
+            Email: <strong>{user.email}</strong> · Vai trò:{" "}
+            <strong>Giảng viên</strong>
           </p>
           <ul>
-            <li>Quản lý danh sách lớp, điểm danh và cập nhật kết quả học tập.</li>
-            <li>Lên lịch giảng dạy, soạn thảo tài liệu và giao bài tập trực tuyến.</li>
-            <li>Trao đổi với sinh viên, gửi thông báo và nhắc nhở quan trọng.</li>
+            <li>
+              Quản lý lớp học, soạn thảo tài liệu và giao bài tập trực tuyến.
+            </li>
+            <li>
+              Trao đổi với sinh viên, gửi thông báo và nhắc nhở quan trọng.
+            </li>
           </ul>
         </section>
 
@@ -96,7 +61,7 @@ const StaffDashboard = () => {
             <h3>Thông tin giảng viên</h3>
             <div className="info-item">
               <strong>Họ tên</strong>
-              <span>{user.fullName}</span>
+              <span>{user.fullName || user.username}</span>
             </div>
             <div className="info-item">
               <strong>Email</strong>
@@ -104,7 +69,7 @@ const StaffDashboard = () => {
             </div>
             <div className="info-item">
               <strong>Mã GV</strong>
-              <span>{user.staffId || 'Chưa cập nhật'}</span>
+              <span>{user.staffId || "Chưa cập nhật"}</span>
             </div>
           </article>
 
@@ -120,7 +85,9 @@ const StaffDashboard = () => {
 
           <article className="info-card">
             <h3>Thời khóa biểu cá nhân</h3>
-            <p>Lịch giảng dạy sẽ hiển thị ngay khi được phòng đào tạo xác nhận.</p>
+            <p>
+              Lịch giảng dạy sẽ hiển thị ngay khi được phòng đào tạo xác nhận.
+            </p>
           </article>
 
           <article className="info-card">
@@ -132,7 +99,7 @@ const StaffDashboard = () => {
         <section className="quick-actions">
           <h3>Tác vụ nhanh</h3>
           <div className="action-buttons">
-            <button className="action-btn">Tạo lớp học mới</button>
+            <button className="action-btn">Tạoao lớp học mới</button>
             <button className="action-btn">Nhập điểm hàng loạt</button>
             <button className="action-btn">Xuất báo cáo</button>
             <button className="action-btn">Gửi thông báo</button>
