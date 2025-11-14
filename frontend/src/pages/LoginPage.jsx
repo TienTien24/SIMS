@@ -64,7 +64,7 @@ export default function LoginPage() {
       const role = data.data.user.role;
       if (role === "admin") {
         navigate("/admin", { replace: true });
-      } else if (role === "teacher" || role === "lecturer") {
+      } else if (role === "teacher") {
         navigate("/staff", { replace: true });
       } else if (role === "student") {
         navigate("/student", { replace: true });

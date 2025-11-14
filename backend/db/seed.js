@@ -25,17 +25,17 @@ const seedQueries = [
   // Bước 4: Users (sử dụng SHA2 hash như mock.sql)
   `INSERT INTO Users (username, password, email, role, status) VALUES 
     ('admin', SHA2('123456', 256), 'admin@qnu.edu.vn', 'admin', 'active'),
-    ('lecture1', SHA2('123456', 256), 'lecture1@qnu.edu.vn', 'lecture', 'active'),
-    ('lecture2', SHA2('password123', 256), 'lecture2@qnu.edu.vn', 'lecture', 'active'),
+    ('teacher1', SHA2('123456', 256), 'teacher1@qnu.edu.vn', 'teacher', 'active'),
+    ('teacher2', SHA2('password123', 256), 'teacher2@qnu.edu.vn', 'teacher', 'active'),
     ('student1', SHA2('password123', 256), 'student1@qnu.edu.vn', 'student', 'active'),
     ('student2', SHA2('password123', 256), 'student2@qnu.edu.vn', 'student', 'active'),
     ('student3', SHA2('password123', 256), 'student3@qnu.edu.vn', 'student', 'active')
   ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);`,
 
-  // Bước 5: lectures
-  `INSERT INTO lectures (user_id, lecture_code, full_name, email, phone, major_id) VALUES 
-    (2, 'GV001', 'Nguyễn Văn A', 'lecture1@qnu.edu.vn', '0123456789', 1),
-    (3, 'GV002', 'Trần Thị B', 'lecture2@qnu.edu.vn', '0987654321', 2)
+  // Bước 5: Teachers
+  `INSERT INTO Teachers (user_id, teacher_code, full_name, email, phone, major_id) VALUES 
+    (2, 'GV001', 'Nguyễn Văn A', 'teacher1@qnu.edu.vn', '0123456789', 1),
+    (3, 'GV002', 'Trần Thị B', 'teacher2@qnu.edu.vn', '0987654321', 2)
   ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);`,
 
   // Bước 6: Students
@@ -46,7 +46,7 @@ const seedQueries = [
   ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);`,
 
   // Bước 7: Subjects
-  `INSERT INTO Subjects (subject_code, subject_name, credits, lecture_id) VALUES 
+  `INSERT INTO Subjects (subject_code, subject_name, credits, teacher_id) VALUES 
     ('MON001', 'Lập trình C++', 3, 1),
     ('MON002', 'Kinh tế học', 3, 2),
     ('MON003', 'Vật lý Đại cương', 4, NULL)
@@ -61,7 +61,7 @@ const seedQueries = [
   ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);`,
 
   // Bước 9: Schedules
-  `INSERT INTO Schedules (class_id, subject_id, day_of_week, period, room, lecture_id, semester_id) VALUES 
+  `INSERT INTO Schedules (class_id, subject_id, day_of_week, period, room, teacher_id, semester_id) VALUES 
     (1, 1, 'Monday', '1-3', 'A101', 1, 1),
     (2, 2, 'Wednesday', '4-6', 'B202', 2, 1),
     (3, 3, 'Friday', '1-4', 'C303', NULL, 1)

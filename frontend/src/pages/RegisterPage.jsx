@@ -190,7 +190,7 @@ export default function RegisterPage() {
               className="form-control"
             >
               <option value="student">Sinh viên</option>
-              <option value="lecturer">Giảng viên</option>
+              <option value="teacher">Giảng viên</option>
             </select>
           </div>
 

@@ -13,7 +13,6 @@ React.useEffect(() => {
   if (
     !user ||
     (user.role !== "teacher" &&
-      user.role !== "lecturer" &&
       user.role !== "admin")
   ) {
     logout();
