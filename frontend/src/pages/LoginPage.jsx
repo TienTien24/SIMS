@@ -1,61 +1,78 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import logo from '../assets/logo.png';
+// src/pages/LoginPage.jsx
+import React, { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { API_BASE_URL } from "../utils/api";
+import { login } from "../utils/auth";
+import logo from "../assets/logo.png";
 
 export default function LoginPage() {
-  const [userType, setUserType] = useState('student');
-  const [account, setAccount] = useState('');
-  const [password, setPassword] = useState('');
-  const [captcha, setCaptcha] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [captcha, setCaptcha] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Hiển thị thông báo thành công từ trang đăng ký
+  React.useEffect(() => {
+    if (location.state?.successMessage) {
+      setError(location.state.successMessage);
+      window.history.replaceState({}, document.title); // Xóa state
+    }
+  }, [location]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
-      // Validate captcha (mã bảo vệ đơn giản)
-      if (captcha.toLowerCase() !== 'eb.com') {
-        setError('Mã bảo vệ không đúng.');
+      // 1. Kiểm tra captcha
+      if (captcha.toLowerCase() !== "eb.com") {
+        setError("Mã bảo vệ không đúng. Vui lòng nhập: eb.com");
         setLoading(false);
         return;
       }
 
-      const response = await fetch('http://localhost:4000/api/auth/login', {
-        method: 'POST',
+      // 2. Gọi API đăng nhập
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: account,
-          password: password,
-        }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        // Lưu token và thông tin user vào localStorage
-        localStorage.setItem('token', data.data.token);
-        localStorage.setItem('user', JSON.stringify(data.data.user));
-        
-        // Chuyển hướng theo role
-        if (data.data.user.role === 'admin') {
-          navigate('/admin');
-        } else if (data.data.user.role === 'lecturer') {
-          navigate('/staff');
-        } else {
-          navigate('/student');
-        }
-      } else {
-        setError(data.message || 'Đăng nhập thất bại.');
+      // 3. Xử lý lỗi từ server
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Đăng nhập thất bại. Vui lòng thử lại."
+        );
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      setError('Có lỗi xảy ra. Vui lòng thử lại.');
+
+      if (!data.success) {
+        throw new Error(data.message);
+      }
+
+      // 4. Lưu thông tin đăng nhập
+      login(data.data.token, data.data.user);
+
+      // 5. Điều hướng theo role từ BE
+      const role = data.data.user.role;
+      if (role === "admin") {
+        navigate("/admin", { replace: true });
+      } else if (role === "teacher" || role === "lecturer") {
+        navigate("/staff", { replace: true });
+      } else if (role === "student") {
+        navigate("/student", { replace: true });
+      } else {
+        navigate("/login");
+      }
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -65,51 +82,47 @@ export default function LoginPage() {
     <div className="auth-layout">
       <div className="auth-card">
         <div className="auth-header">
-          <img src={logo} alt="Logo Quy Nhơn University" />
+          <img src={logo} alt="Logo Đại học Quy Nhơn" className="logo-img" />
           <h2 className="auth-title">Trường Đại học Quy Nhơn</h2>
           <p className="auth-subtitle">Đăng nhập hệ thống SIMS</p>
         </div>
 
-        {error && <div className="error-alert">{error}</div>}
+        {/* Thông báo (thành công hoặc lỗi) */}
+        {error && (
+          <div
+            className={`alert ${
+              error.includes("thành công") ? "alert-success" : "alert-error"
+            }`}
+          >
+            {error}
+          </div>
+        )}
 
         <form className="form-stack" onSubmit={handleLogin}>
-          <div className="form-group">
-            <label htmlFor="userType" className="form-label">
-              Loại tài khoản
-            </label>
-            <select
-              id="userType"
-              value={userType}
-              onChange={(e) => setUserType(e.target.value)}
-              className="form-control"
-            >
-              <option value="student">Sinh viên</option>
-              <option value="lecturer">Giảng viên</option>
-              <option value="admin">Quản trị viên</option>
-            </select>
-          </div>
+          {/* BỎ HOÀN TOÀN: select loại tài khoản */}
 
           <div className="form-group">
-            <label htmlFor="loginEmail" className="form-label">
+            <label htmlFor="email" className="form-label">
               Email (Tài khoản)
             </label>
             <input
-              id="loginEmail"
+              id="email"
               type="email"
-              placeholder="name@example.com"
-              value={account}
-              onChange={(e) => setAccount(e.target.value)}
+              placeholder="ten@qnu.edu.vn"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="form-control"
               required
+              autoFocus
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="loginPassword" className="form-label">
+            <label htmlFor="password" className="form-label">
               Mật khẩu
             </label>
             <input
-              id="loginPassword"
+              id="password"
               type="password"
               placeholder="Nhập mật khẩu"
               value={password}
@@ -135,11 +148,17 @@ export default function LoginPage() {
               />
               <div className="captcha-badge">Eb.com</div>
             </div>
-            <p className="form-note">* Mã bảo vệ có phân biệt chữ hoa/thường.</p>
+            <small className="form-note">
+              Nhập: <strong>eb.com</strong> (không phân biệt hoa/thường)
+            </small>
           </div>
 
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          <button
+            type="submit"
+            className="btn btn-primary w-100"
+            disabled={loading}
+          >
+            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
         </form>
 
@@ -153,18 +172,22 @@ export default function LoginPage() {
         </div>
 
         <div className="support-card">
-          <p>Trường hợp quên mật khẩu:</p>
-          <ul>
-            <li>Sinh viên hệ chính quy: Mang theo thẻ sinh viên liên hệ phòng 101 (Trung tâm QLHTTT).</li>
-            <li>CB-NV/GV: Liên hệ trực tiếp phòng 101 (Trung tâm QLHTTT).</li>
-          </ul>
-          <div className="support-divider">Hoặc</div>
           <p>
-            Gửi yêu cầu hỗ trợ qua email hotro@qnu.edu.vn hoặc truy cập{' '}
+            <strong>Quên mật khẩu?</strong>
+          </p>
+          <ul>
+            <li>
+              Sinh viên: Mang thẻ sinh viên đến <strong>phòng 101</strong>
+            </li>
+            <li>Giảng viên: Liên hệ Trung tâm QLHTTT</li>
+          </ul>
+          <p className="mt-2">
+            Gửi email: <a href="mailto:hotro@qnu.edu.vn">hotro@qnu.edu.vn</a>
+            <br />
+            hoặc truy cập{" "}
             <a href="https://hotro.qnu.edu.vn" target="_blank" rel="noreferrer">
               https://hotro.qnu.edu.vn
             </a>
-            .
           </p>
         </div>
       </div>
