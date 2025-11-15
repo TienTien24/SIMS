@@ -1,27 +1,22 @@
 // src/pages/StudentDashboard.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { logout } from "../utils/auth";
+import { logout, getUser } from "../utils/auth";
 import "../styles/dashboard.css";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  // Bảo vệ route
-  React.useEffect(() => {
-    if (!user || (user.role !== "student" && user.role !== "admin")) {
-      logout();
-      navigate("/login");
-    }
-  }, [user, navigate]);
+  const user = getUser();
 
   const handleLogout = () => {
     logout();
     navigate("/");
   };
 
-  if (!user) return null;
+  // ProtectedRoute đã xử lý authentication và authorization
+  if (!user) {
+    return <div>Đang tải...</div>;
+  }
 
   return (
     <div className="dashboard-container">
@@ -54,8 +49,12 @@ const StudentDashboard = () => {
         </section>
 
         <section className="dashboard-cards">
-          <article className="info-card">
+          <article className="feature-card feature-card-profile">
+            <div className="feature-card-header">
+              <div className="feature-card-icon feature-icon-profile">👤</div>
             <h3>Hồ sơ học tập</h3>
+            </div>
+            <div className="feature-card-content">
             <div className="info-item">
               <strong>Họ tên</strong>
               <span>{user.fullName || user.username}</span>
@@ -68,21 +67,96 @@ const StudentDashboard = () => {
               <strong>MSSV</strong>
               <span>{user.studentId || "Chưa cập nhật"}</span>
             </div>
+            </div>
+            <button
+              className="feature-card-btn feature-btn-profile"
+              onClick={() => navigate("/student/profile")}
+            >
+              <span>Xem và cập nhật thông tin</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
           </article>
 
-          <article className="info-card">
-            <h3>Tác vụ nổi bật</h3>
-            <ul>
-              <li>Xem và tải thời khóa biểu cá nhân.</li>
-              <li>Đăng ký / hủy học phần trong thời gian cho phép.</li>
-              <li>Tra cứu kết quả học tập, điểm rèn luyện.</li>
-              <li>Thanh toán học phí và xem lịch sử giao dịch.</li>
+          <article className="feature-card feature-card-grades">
+            <div className="feature-card-header">
+              <div className="feature-card-icon feature-icon-grades">📊</div>
+              <h3>Điểm số và kết quả học tập</h3>
+            </div>
+            <div className="feature-card-content">
+              <p>Xem điểm các môn học, kết quả học tập theo học kỳ và GPA.</p>
+            </div>
+            <button
+              className="feature-card-btn feature-btn-grades"
+              onClick={() => navigate("/student/grades")}
+            >
+              <span>Xem điểm số</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </article>
+
+          <article className="feature-card feature-card-enrollments">
+            <div className="feature-card-header">
+              <div className="feature-card-icon feature-icon-enrollments">📝</div>
+              <h3>Đăng ký môn học</h3>
+            </div>
+            <div className="feature-card-content">
+              <ul className="feature-list">
+                <li>Đăng ký môn học mới</li>
+                <li>Xem danh sách môn đã đăng ký</li>
+                <li>Hủy đăng ký môn học</li>
             </ul>
+            </div>
+            <button
+              className="feature-card-btn feature-btn-enrollments"
+              onClick={() => navigate("/student/enrollments")}
+            >
+              <span>Quản lý đăng ký</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
           </article>
 
-          <article className="info-card">
-            <h3>Thông báo mới nhất</h3>
-            <p>Chưa có thông báo nào. Vui lòng kiểm tra lại sau.</p>
+          <article className="feature-card feature-card-schedule">
+            <div className="feature-card-header">
+              <div className="feature-card-icon feature-icon-schedule">📅</div>
+              <h3>Lịch học và thời khóa biểu</h3>
+            </div>
+            <div className="feature-card-content">
+              <p>Xem lịch học theo học kỳ, thời khóa biểu cá nhân và phòng học.</p>
+            </div>
+            <button
+              className="feature-card-btn feature-btn-schedule"
+              onClick={() => navigate("/student/schedule")}
+            >
+              <span>Xem lịch học</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </article>
+
+          <article className="feature-card feature-card-notifications">
+            <div className="feature-card-header">
+              <div className="feature-card-icon feature-icon-notifications">🔔</div>
+              <h3>Thông báo</h3>
+            </div>
+            <div className="feature-card-content">
+              <p>Tra cứu thông báo, hướng dẫn từ giảng viên hoặc quản trị viên.</p>
+            </div>
+            <button
+              className="feature-card-btn feature-btn-notifications"
+              onClick={() => navigate("/student/notifications")}
+            >
+              <span>Xem thông báo</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
           </article>
         </section>
       </main>

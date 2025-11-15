@@ -61,19 +61,33 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          email,
-          password,
-          full_name: fullName.trim(),
-          role: role === "student" ? "student" : "teacher",
-        }),
-      });
+      let res;
+      try {
+        res = await fetch(`${API_BASE_URL}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            email,
+            password,
+            full_name: fullName.trim(),
+            role: role === "student" ? "student" : "teacher",
+          }),
+        });
+      } catch (networkError) {
+        throw new Error(
+          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc đảm bảo server đang chạy."
+        );
+      }
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseError) {
+        throw new Error(
+          "Server trả về dữ liệu không hợp lệ. Vui lòng thử lại sau."
+        );
+      }
 
       if (!res.ok && res.status !== 201) {
         throw new Error(data.error || data.message || "Đăng ký thất bại");
