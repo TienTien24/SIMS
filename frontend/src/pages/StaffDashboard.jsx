@@ -1,31 +1,22 @@
 // src/pages/StaffDashboard.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { logout } from "../utils/auth";
+import { logout, getUser } from "../utils/auth";
 import "../styles/dashboard.css";
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  // Bảo vệ route
-React.useEffect(() => {
-  if (
-    !user ||
-    (user.role !== "teacher" &&
-      user.role !== "admin")
-  ) {
-    logout();
-    navigate("/login");
-  }
-}, [user, navigate]);
+  const user = getUser(); // Sử dụng helper function từ auth.js
 
   const handleLogout = () => {
     logout();
     navigate("/");
   };
 
-  if (!user) return null;
+  // ProtectedRoute đã xử lý authentication và authorization
+  if (!user) {
+    return <div>Đang tải...</div>;
+  }
 
   return (
     <div className="dashboard-container">
@@ -99,7 +90,7 @@ React.useEffect(() => {
         <section className="quick-actions">
           <h3>Tác vụ nhanh</h3>
           <div className="action-buttons">
-            <button className="action-btn">Tạoao lớp học mới</button>
+            <button className="action-btn">Tạo lớp học mới</button>
             <button className="action-btn">Nhập điểm hàng loạt</button>
             <button className="action-btn">Xuất báo cáo</button>
             <button className="action-btn">Gửi thông báo</button>

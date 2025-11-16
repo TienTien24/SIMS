@@ -1,26 +1,22 @@
-// src/pages/dashboards/AdminDashboard.jsx
+// src/pages/AdminDashboard.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { logout } from "../utils/auth";
+import { logout, getUser } from "../utils/auth";
 import "../styles/dashboard.css";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  React.useEffect(() => {
-    if (!user || user.role !== "admin") {
-      logout();
-      navigate("/login");
-    }
-  }, [user, navigate]);
+  const user = getUser(); // Sử dụng helper function từ auth.js
 
   const handleLogout = () => {
     logout();
     navigate("/");
   };
 
-  if (!user) return null;
+  // ProtectedRoute đã xử lý authentication và authorization
+  if (!user) {
+    return <div>Đang tải...</div>;
+  }
 
   const stats = {
     totalStudents: 1250,

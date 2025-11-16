@@ -36,31 +36,46 @@ export default function LoginPage() {
       }
 
       // 2. Gọi API đăng nhập
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      let response;
+      try {
+        response = await fetch(`${API_BASE_URL}/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        });
+      } catch (networkError) {
+        throw new Error(
+          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc đảm bảo server đang chạy."
+        );
+      }
 
-      const data = await response.json();
+      // 3. Xử lý response
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        throw new Error(
+          "Server trả về dữ liệu không hợp lệ. Vui lòng thử lại sau."
+        );
+      }
 
-      // 3. Xử lý lỗi từ server
+      // 4. Xử lý lỗi từ server
       if (!response.ok) {
         throw new Error(
-          data.message || "Đăng nhập thất bại. Vui lòng thử lại."
+          data.message || data.error || "Đăng nhập thất bại. Vui lòng thử lại."
         );
       }
 
       if (!data.success) {
-        throw new Error(data.message);
+        throw new Error(data.message || "Đăng nhập thất bại.");
       }
 
-      // 4. Lưu thông tin đăng nhập
+      // 5. Lưu thông tin đăng nhập
       login(data.data.token, data.data.user);
 
-      // 5. Điều hướng theo role từ BE
+      // 6. Điều hướng theo role từ BE
       const role = data.data.user.role;
       if (role === "admin") {
         navigate("/admin", { replace: true });
