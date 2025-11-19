@@ -1,0 +1,229 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ====================== ENUMS ======================
+enum Role {
+  admin
+  teacher
+  student
+}
+
+enum Status {
+  active
+  inactive
+}
+
+enum Gender {
+  male
+  female
+  other
+}
+
+enum DayOfWeek {
+  Monday
+  Tuesday
+  Wednesday
+  Thursday
+  Friday
+  Saturday
+  Sunday
+}
+
+enum EnrollmentStatus {
+  registered
+  completed
+  dropped
+}
+
+// ====================== MODELS ======================
+
+model User {
+  id            String    @id
+  username      String    @unique @db.VarChar(50)
+  password      String    @db.VarChar(255)
+  email         String    @unique @db.VarChar(100)
+  
+  fullName      String    @map("full_name") @db.VarChar(100)
+  phone         String?   @db.VarChar(20)
+  avatar        String?
+  gender        Gender?
+
+  role          Role
+  status        Status    @default(active)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  student       Student?
+  teacher       Teacher?
+  enteredGrades Grade[]   @relation("EnteredBy")
+
+  @@map("Users")
+}
+
+model Major {
+  id        String    @id
+  majorCode String    @unique @map("major_code") @db.VarChar(20)
+  majorName String    @map("major_name") @db.VarChar(100)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  students  Student[]
+  teachers  Teacher[]
+  classes   Class[]
+
+  @@map("Majors")
+}
+
+model Class {
+  id        String    @id
+  classCode String    @unique @map("class_code") @db.VarChar(20)
+  className String    @map("class_name") @db.VarChar(100)
+  course    String?   @db.VarChar(50)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  students    Student[]
+  enrollments Enrollment[]
+  schedules   Schedule[]
+  majors      Major[]
+
+  @@map("Classes")
+}
+
+model Student {
+  id          String    @id
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String    @unique @map("user_id")
+
+  studentCode String    @unique @map("student_code") @db.VarChar(20)
+  birthDate   DateTime? @map("birth_date")
+  address     String?   @db.Text
+
+  class       Class?    @relation(fields: [classId], references: [id], onDelete: SetNull)
+  classId     String?   @map("class_id")
+  major       Major?    @relation(fields: [majorId], references: [id], onDelete: SetNull)
+  majorId     String?   @map("major_id")
+  course      String?   @db.VarChar(50)
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  enrollments Enrollment[]
+  grades      Grade[]
+
+  @@map("Students")
+}
+
+model Teacher {
+  id          String    @id
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String    @unique @map("user_id")
+
+  teacherCode String    @unique @map("teacher_code") @db.VarChar(20)
+  email       String?   @db.VarChar(100)
+  phone       String?   @db.VarChar(20)
+  major       Major?    @relation(fields: [majorId], references: [id], onDelete: SetNull)
+  majorId     String?   @map("major_id")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  subjects    Subject[]
+  schedules   Schedule[]
+
+  @@map("Teachers")
+}
+
+model Subject {
+  id          String    @id
+  subjectCode String    @unique @map("subject_code") @db.VarChar(20)
+  subjectName String    @map("subject_name") @db.VarChar(100)
+  credits     Int       @default(3)
+  teacher     Teacher?  @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  teacherId   String?   @map("teacher_id")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  enrollments Enrollment[]
+  schedules   Schedule[]
+  grades      Grade[]
+
+  @@map("Subjects")
+}
+
+model Semester {
+  id           String    @id
+  semesterName String    @map("semester_name") @db.VarChar(20)
+  year         Int
+  startDate    DateTime? @map("start_date")
+  endDate      DateTime? @map("end_date")
+  isActive     Boolean   @default(false) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  enrollments  Enrollment[]
+  schedules    Schedule[]
+  grades       Grade[]
+
+  @@map("Semesters")
+}
+
+model Enrollment {
+  id             String           @id
+  student        Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId      String           @map("student_id")
+  class          Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId        String           @map("class_id")
+  subject        Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId      String           @map("subject_id")
+  semester       Semester         @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  semesterId     String           @map("semester_id")
+  enrollmentDate DateTime         @default(now()) @map("enrollment_date")
+  status         EnrollmentStatus @default(registered)
+
+  @@unique([studentId, subjectId, semesterId])
+  @@map("Enrollments")
+}
+
+model Schedule {
+  id          String    @id
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId     String    @map("class_id")
+  subject     Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId   String    @map("subject_id")
+  dayOfWeek   DayOfWeek @map("day_of_week")
+  period      String    @db.VarChar(20)
+  room        String?   @db.VarChar(50)
+  teacher     Teacher?  @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  teacherId   String?   @map("teacher_id")
+  semester    Semester  @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  semesterId  String    @map("semester_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("Schedules")
+}
+
+model Grade {
+  id             String    @id
+  student        Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId      String    @map("student_id")
+  subject        Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId      String    @map("subject_id")
+  semester       Semester  @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  semesterId     String    @map("semester_id")
+
+  processScore   Decimal?  @default(0.00) @db.Decimal(4,2) @map("process_score")
+  midtermScore   Decimal?  @default(0.00) @db.Decimal(4,2) @map("midterm_score")
+  finalScore     Decimal?  @default(0.00) @db.Decimal(4,2) @map("final_score")
+  averageScore   Decimal?  @db.Decimal(4,2) @map("average_score")
+
+  isFinalized    Boolean   @default(false) @map("is_finalized")
+  enteredBy      User?     @relation("EnteredBy", fields: [enteredById], references: [id], onDelete: SetNull)
+  enteredById    String?   @map("entered_by")
+  enteredAt      DateTime? @map("entered_at")
+
+  @@unique([studentId, subjectId, semesterId])
+  @@map("Grades")
+}

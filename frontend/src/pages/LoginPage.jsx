@@ -14,11 +14,10 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hiển thị thông báo thành công từ trang đăng ký
   React.useEffect(() => {
     if (location.state?.successMessage) {
       setError(location.state.successMessage);
-      window.history.replaceState({}, document.title); // Xóa state
+      window.history.replaceState({}, document.title);
     }
   }, [location]);
 
@@ -41,7 +40,7 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ loginInput: email, password }),
       });
 
       const data = await response.json();
@@ -58,9 +57,9 @@ export default function LoginPage() {
       }
 
       // 4. Lưu thông tin đăng nhập
-      login(data.data.token, data.data.user);
+      login(data.data.accessToken, data.data.user);
 
-      // 5. Điều hướng theo role từ BE
+      // 5. Điều hướng theo role
       const role = data.data.user.role;
       if (role === "admin") {
         navigate("/admin", { replace: true });
@@ -99,16 +98,14 @@ export default function LoginPage() {
         )}
 
         <form className="form-stack" onSubmit={handleLogin}>
-          {/* BỎ HOÀN TOÀN: select loại tài khoản */}
-
           <div className="form-group">
             <label htmlFor="email" className="form-label">
-              Email (Tài khoản)
+              Email hoặc Username (Tài khoản)
             </label>
             <input
               id="email"
-              type="email"
-              placeholder="ten@qnu.edu.vn"
+              type="text"
+              placeholder="Nhập email hoặc username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="form-control"

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # SIMS - Student Information Management System
 
 ## Tổng quan

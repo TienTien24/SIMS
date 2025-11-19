@@ -1,8 +1,11 @@
-import dotenv from "dotenv";
+// src/config/jwt.js
+import "dotenv/config";
 
-dotenv.config();
+export const jwtConfig = {
+  secret: process.env.JWT_SECRET || "fallback-sims-2025-secret-please-change",
+  expiresIn: process.env.JWT_EXPIRES_IN || "8h",
+  refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "30d",
+};
 
-// JWT Config
-export const JWT_SECRET =
-  process.env.JWT_SECRET || "SIMS-secret-key";
-export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d"; // Hết hạn sau 24 giờ
+export const JWT_SECRET = jwtConfig.secret;
+export const JWT_EXPIRES_IN = jwtConfig.expiresIn;

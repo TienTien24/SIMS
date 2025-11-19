@@ -6,6 +6,7 @@ import logo from "../assets/logo.png";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,6 +23,14 @@ export default function RegisterPage() {
     setSuccess("");
 
     // === VALIDATION ===
+    if (!username.trim()) {
+      setError("Vui lòng nhập username.");
+      return;
+    }
+    if (!/^[a-z0-9]{3,}$/i.test(username)) {
+      setError("Username phải có ít nhất 3 ký tự chữ cái hoặc số.");
+      return;
+    }
     if (!fullName.trim()) {
       setError("Vui lòng nhập họ và tên.");
       return;
@@ -51,13 +60,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // === TẠO USERNAME TỪ EMAIL ===
-    const username = email.split("@")[0].toLowerCase();
-    if (!/^[a-z0-9]+$/.test(username)) {
-      setError("Email không hợp lệ để tạo username (chỉ chữ cái và số)");
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -65,10 +67,10 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username,
+          username: username.toLowerCase().trim(),
           email,
           password,
-          full_name: fullName.trim(),
+          fullName: fullName.trim(),
           role: role === "student" ? "student" : "teacher",
         }),
       });
@@ -76,7 +78,11 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok && res.status !== 201) {
-        throw new Error(data.error || data.message || "Đăng ký thất bại");
+        throw new Error(data.message || "Đăng ký thất bại");
+      }
+
+      if (!data.success) {
+        throw new Error(data.message);
       }
 
       // === THÀNH CÔNG ===
@@ -94,7 +100,6 @@ export default function RegisterPage() {
   return (
     <div className="auth-layout">
       <div className="auth-card">
-        {/* HEADER – GIỐNG HỆT CŨ */}
         <div className="section-header">
           <span className="badge">Tạo tài khoản truy cập</span>
           <h2 className="auth-title">Đăng ký hệ thống SIMS</h2>
@@ -109,6 +114,26 @@ export default function RegisterPage() {
 
         {/* FORM */}
         <form className="form-stack" onSubmit={handleSubmit}>
+          {/* USERNAME – BẮT BUỘC */}
+          <div className="form-group">
+            <label htmlFor="username" className="form-label">
+              Username (bắt buộc)
+            </label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="form-control"
+              placeholder="testuser (chữ cái/số, min 3 ký tự)"
+              minLength="3"
+              required
+            />
+            <small className="form-note">
+              Username chỉ chữ cái và số, ít nhất 3 ký tự.
+            </small>
+          </div>
+
           {/* HỌ VÀ TÊN */}
           <div className="form-group">
             <label htmlFor="fullName" className="form-label">
@@ -139,10 +164,6 @@ export default function RegisterPage() {
               placeholder="ten@qnu.edu.vn"
               required
             />
-            <small className="form-note">
-              Username sẽ là:{" "}
-              <strong>{email ? email.split("@")[0] : "ten"}</strong>
-            </small>
           </div>
 
           {/* MẬT KHẨU */}
@@ -212,17 +233,21 @@ export default function RegisterPage() {
               <div className="captcha-badge">Eb.com</div>
             </div>
             <small className="form-note">
-              Nhập: <strong>eb.com</strong>
+              Nhập: <strong>eb.com</strong> (không phân biệt hoa/thường)
             </small>
           </div>
 
           {/* NÚT ĐĂNG KÝ */}
-          <button type="submit" className="btn btn-primary" disabled={loading}>
+          <button
+            type="submit"
+            className="btn btn-primary w-100"
+            disabled={loading}
+          >
             {loading ? "Đang xử lý..." : "Đăng ký tài khoản"}
           </button>
         </form>
 
-        {/* FOOTER – GIỐNG HỆT CŨ */}
+        {/* FOOTER*/}
         <div className="register-footer">
           <span>Bạn đã có tài khoản?</span>
           <button type="button" onClick={() => navigate("/login")}>

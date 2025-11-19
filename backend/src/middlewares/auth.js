@@ -1,19 +1,31 @@
-import jwt from "jsonwebtoken";
+// src/middlewares/auth.js
+import { verifyAccessToken } from "../utils/jwtUtils.js";
+import { UserModel } from "../models/index.js";
+import { unauthorized } from "../utils/response.js";
 
-export const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).json({ error: "Access token required" });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    // ← Dùng từ .env
-    if (err) {
-      return res.status(403).json({ error: "Invalid or expired token" });
+export const protectRoute = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return unauthorized(res, "Không tìm thấy token!");
     }
-    req.user = decoded;
+
+    const token = authHeader.split(" ")[1];
+    const decoded = verifyAccessToken(token);
+
+    const user = await UserModel.findById(decoded.userId);
+    if (!user || user.status !== "active") {
+      return unauthorized(res, "Tài khoản không hợp lệ!");
+    }
+
+    req.user = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+    };
+
     next();
-  });
+  } catch (err) {
+    return unauthorized(res, "Token không hợp lệ hoặc đã hết hạn!");
+  }
 };
