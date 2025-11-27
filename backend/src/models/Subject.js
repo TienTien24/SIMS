@@ -41,6 +41,13 @@ const getById = async (id) => {
   return rows[0];
 };
 
+//Get by Name
+const getByName = async (subjectName) => {
+  const query = "SELECT * FROM Subjects WHERE subject_name = ?";
+  const [rows] = await pool.execute(query, [subjectName]);
+  return rows[0];
+};
+
 // Get all
 const getAll = async () => {
   const query = `SELECT s.*, t.full_name AS teacher_name FROM Subjects s 
@@ -71,4 +78,4 @@ const deleteById = async (id) => {
 };
 
 // Export tất cả (bao gồm 'create' đã defined)
-export { createTable, create, getById, getAll, update, deleteById };
+export { createTable, create, getById, getAll, update, deleteById, getByName };
