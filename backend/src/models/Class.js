@@ -33,9 +33,29 @@ const getById = async (id) => {
 };
 
 // Get all
-const getAll = async () => {
-  const query = "SELECT * FROM Classes ORDER BY class_name";
-  const [rows] = await pool.execute(query);
+const getAll = async (filters = {}) => {
+  const { keyword, course } = filters;
+
+  let query = "SELECT * FROM Classes";
+  const params = [];
+  const conditions = [];
+
+  if (keyword) {
+    conditions.push("(class_name LIKE ? OR class_code LIKE ?)");
+    params.push(`%${keyword}%`, `%${keyword}%`);
+  }
+  if (course) {
+    conditions.push("course LIKE ?");
+    params.push(`%${course}%`);
+  }
+
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  query += ` ORDER BY class_name`;
+
+  const [rows] = await pool.execute(query, params);
   return rows;
 };
 
@@ -61,5 +81,5 @@ const deleteById = async (id) => {
   return { message: "Class deleted" };
 };
 
-// Export (bao gồm createTable)
+// Export
 export { createTable, create, getById, getAll, update, deleteById };

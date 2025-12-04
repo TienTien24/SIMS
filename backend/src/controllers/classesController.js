@@ -4,10 +4,22 @@ import * as ClassModel from "../models/Class.js";
 // GET /api/classes - Lấy danh sách tất cả lớp học
 export const getAllClasses = async (req, res) => {
   try {
-    const classes = await ClassModel.getAll();
+    const keyword = req.query.q || req.query.search;
+    const course = req.query.course; 
+
+    const classes = await ClassModel.getAll({
+      keyword,
+      course,
+    });
+
+    let message = "Lấy danh sách lớp học thành công";
+    if (keyword || course) {
+      message = `Tìm thấy ${classes.length} kết quả phù hợp với bộ lọc.`;
+    }
+
     res.json({
       success: true,
-      message: "Lấy danh sách lớp học thành công",
+      message: message,
       data: classes,
     });
   } catch (error) {

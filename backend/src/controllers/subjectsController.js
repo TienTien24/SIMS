@@ -3,10 +3,30 @@ import * as SubjectModel from "../models/Subject.js";
 // GET /api/subjects - Lấy danh sách môn học
 export const getAllSubjects = async (req, res) => {
   try {
-    const subjects = await SubjectModel.getAll();
+    const keyword = req.query.q || req.query.search;
+    const credits = req.query.credits;
+    const teacherName = req.query.teacher;
+
+    const hasFilters = keyword || credits || teacherName;
+
+    let subjects;
+    let message;
+
+    if (hasFilters) {
+      subjects = await SubjectModel.search({
+        keyword,
+        credits,
+        teacherName,
+      });
+      message = `Tìm thấy ${subjects.length} kết quả phù hợp với bộ lọc.`;
+    } else {
+      subjects = await SubjectModel.listAll();
+      message = "Lấy danh sách tất cả môn học thành công.";
+    }
+
     res.json({
       success: true,
-      message: "Lấy danh sách môn học thành công",
+      message: message,
       data: subjects,
     });
   } catch (error) {
