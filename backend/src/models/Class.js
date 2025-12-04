@@ -19,6 +19,8 @@ const create = async (classCode, className, course) => {
     "INSERT INTO Classes (class_code, class_name, course) VALUES (?, ?, ?)";
   try {
     const [result] = await pool.execute(query, [classCode, className, course]);
+    // Trả về dữ liệu đầy đủ, có thể gọi getById nếu cần thêm thông tin từ DB.
+    // Hiện tại giữ nguyên cách trả về đã có.
     return { id: result.insertId, classCode, className, course };
   } catch (error) {
     throw new Error(`Create class failed: ${error.message}`);
@@ -32,9 +34,25 @@ const getById = async (id) => {
   return rows[0];
 };
 
-// Get all
-const getAll = async (filters = {}) => {
+const getByCode = async (classCode) => {
+  const query = "SELECT * FROM Classes WHERE class_code = ?";
+  const [rows] = await pool.execute(query, [classCode]);
+  return rows[0];
+};
+
+const listAll = async () => {
+  const query = "SELECT * FROM Classes ORDER BY class_name";
+  const [rows] = await pool.execute(query);
+  return rows;
+};
+
+//Chỉ tìm kiếm khi có filters
+const search = async (filters = {}) => {
   const { keyword, course } = filters;
+
+  if (!keyword && !course) {
+    return []; // Trả về rỗng nếu không có filter nào
+  }
 
   let query = "SELECT * FROM Classes";
   const params = [];
@@ -60,16 +78,16 @@ const getAll = async (filters = {}) => {
 };
 
 // Update
-const update = async (id, classCode, className, course) => {
-  const query =
-    "UPDATE Classes SET class_code = ?, class_name = ?, course = ? WHERE id = ?";
-  const [result] = await pool.execute(query, [
-    classCode,
-    className,
-    course,
-    id,
-  ]);
-  if (result.affectedRows === 0) throw new Error("Class not found");
+const update = async (id, updates) => {
+  const fields = Object.keys(updates)
+    .map((key) => `${key} = ?`)
+    .join(", ");
+  const values = [...Object.values(updates), id];
+
+  const query = `UPDATE Classes SET ${fields} WHERE id = ?`;
+  const [result] = await pool.execute(query, values);
+
+  if (result.affectedRows === 0) return null; // Trả về null nếu không tìm thấy
   return await getById(id);
 };
 
@@ -81,5 +99,14 @@ const deleteById = async (id) => {
   return { message: "Class deleted" };
 };
 
-// Export
-export { createTable, create, getById, getAll, update, deleteById };
+
+export {
+  createTable,
+  create,
+  getById,
+  listAll,
+  search,
+  update,
+  deleteById,
+  getByCode,
+};

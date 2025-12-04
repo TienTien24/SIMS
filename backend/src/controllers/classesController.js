@@ -1,20 +1,22 @@
 // src/controllers/classesController.js
 import * as ClassModel from "../models/Class.js";
 
-// GET /api/classes - Lấy danh sách tất cả lớp học
+// GET /api/classes - Lấy danh sách tất cả lớp học HOẶC Tìm kiếm
 export const getAllClasses = async (req, res) => {
   try {
     const keyword = req.query.q || req.query.search;
     const course = req.query.course; 
+    
+    const hasFilters = keyword || course;
+    let classes;
+    let message;
 
-    const classes = await ClassModel.getAll({
-      keyword,
-      course,
-    });
-
-    let message = "Lấy danh sách lớp học thành công";
-    if (keyword || course) {
-      message = `Tìm thấy ${classes.length} kết quả phù hợp với bộ lọc.`;
+    if (hasFilters) {
+        classes = await ClassModel.search({ keyword, course });
+        message = `Tìm thấy ${classes.length} kết quả phù hợp với bộ lọc.`;
+    } else {
+        classes = await ClassModel.listAll();
+        message = "Lấy danh sách tất cả lớp học thành công";
     }
 
     res.json({
@@ -61,14 +63,14 @@ export const getClassById = async (req, res) => {
 // POST /api/classes - Tạo lớp học mới
 export const createClass = async (req, res) => {
   try {
-    const { class_code, class_name, course } = req.body;
+    const { class_code, class_name, course } = req.body; 
 
-    // Validation
-    if (!class_code || !class_name) {
-      return res.status(400).json({
-        success: false,
-        message: "Vui lòng điền đầy đủ thông tin (class_code, class_name)",
-      });
+    const existingCode = await ClassModel.getByCode(class_code);
+    if (existingCode) {
+        return res.status(400).json({
+            success: false,
+            message: `Mã lớp học "${class_code}" đã tồn tại.`,
+        });
     }
 
     const newClass = await ClassModel.create(class_code, class_name, course);
@@ -93,14 +95,29 @@ export const updateClass = async (req, res) => {
     const { id } = req.params;
     const { class_code, class_name, course } = req.body;
 
-    if (!class_code || !class_name) {
-      return res.status(400).json({
-        success: false,
-        message: "Vui lòng điền đầy đủ thông tin",
-      });
+    const updates = {};
+    if (class_code !== undefined) updates.class_code = class_code;
+    if (class_name !== undefined) updates.class_name = class_name;
+    if (course !== undefined) updates.course = course;
+
+    if (class_code) {
+        const existingCode = await ClassModel.getByCode(class_code);
+        if (existingCode && existingCode.id != id) {
+            return res.status(400).json({
+                success: false,
+                message: `Mã lớp học "${class_code}" đã được sử dụng bởi lớp khác.`,
+            });
+        }
     }
 
-    const updatedClass = await ClassModel.update(id, class_code, class_name, course);
+    const updatedClass = await ClassModel.update(id, updates);
+
+    if (!updatedClass) {
+        return res.status(404).json({
+            success: false,
+            message: "Không tìm thấy lớp học để cập nhật",
+        });
+    }
 
     res.json({
       success: true,

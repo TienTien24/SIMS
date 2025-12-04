@@ -7,6 +7,11 @@ import {
   deleteClass,
 } from "../controllers/classesController.js";
 import { authenticateToken, requireAdmin } from "../middlewares/auth.js";
+// 👈 Thêm import validation
+import {
+  validateCreateClass,
+  validateUpdateClass,
+} from "../middlewares/validation.js";
 
 const router = express.Router();
 
@@ -20,13 +25,14 @@ router.get("/", getAllClasses);
 router.get("/:id", getClassById);
 
 // POST /api/classes - Tạo mới (chỉ admin)
-router.post("/", requireAdmin, createClass);
+// 👈 Thêm validateCreateClass
+router.post("/", requireAdmin, validateCreateClass, createClass);
 
 // PUT /api/classes/:id - Cập nhật (chỉ admin)
-router.put("/:id", requireAdmin, updateClass);
+// 👈 Thêm validateUpdateClass
+router.put("/:id", requireAdmin, validateUpdateClass, updateClass);
 
 // DELETE /api/classes/:id - Xóa (chỉ admin)
 router.delete("/:id", requireAdmin, deleteClass);
 
 export default router;
-
