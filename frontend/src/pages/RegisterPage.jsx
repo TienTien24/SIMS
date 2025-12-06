@@ -1,7 +1,7 @@
 // src/pages/RegisterPage.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_BASE_URL } from "../utils/api";
+import { apiCallJson } from "../utils/api";
 import logo from "../assets/logo.png";
 
 export default function RegisterPage() {
@@ -61,43 +61,24 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      let res;
-      try {
-        res = await fetch(`${API_BASE_URL}/auth/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username,
-            email,
-            password,
-            full_name: fullName.trim(),
-            role: role === "student" ? "student" : "teacher",
-          }),
-        });
-      } catch (networkError) {
-        throw new Error(
-          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc đảm bảo server đang chạy."
-        );
-      }
+      const data = await apiCallJson("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          full_name: fullName.trim(),
+          role: role === "student" ? "student" : "teacher",
+        }),
+      });
 
-      let data;
-      try {
-        data = await res.json();
-      } catch (parseError) {
-        throw new Error(
-          "Server trả về dữ liệu không hợp lệ. Vui lòng thử lại sau."
-        );
-      }
-
-      if (!res.ok && res.status !== 201) {
-        throw new Error(data.error || data.message || "Đăng ký thất bại");
-      }
-
-      // === THÀNH CÔNG ===
       setSuccess("Đăng ký thành công! Đang chuyển đến trang đăng nhập...");
       setTimeout(() => {
-        navigate("/login", { replace: true });
-      }, 2000);
+        navigate("/login", {
+          replace: true,
+          state: { successMessage: "Đăng ký thành công! Vui lòng đăng nhập." },
+        });
+      }, 1500);
     } catch (err) {
       setError(err.message);
     } finally {

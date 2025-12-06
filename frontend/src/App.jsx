@@ -10,6 +10,12 @@ import StudentEnrollments from './pages/student/StudentEnrollments';
 import StudentSchedule from './pages/student/StudentSchedule';
 import StudentNotifications from './pages/student/StudentNotifications';
 import StaffDashboard from './pages/StaffDashboard';
+import StaffProfile from './pages/staff/StaffProfile';
+import StaffClasses from './pages/staff/StaffClasses';
+import StaffSchedule from './pages/staff/StaffSchedule';
+import StaffNotifications from './pages/staff/StaffNotifications';
+import StaffBulkGrades from './pages/staff/StaffBulkGrades';
+import StaffReports from './pages/staff/StaffReports';
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -77,6 +83,54 @@ export default function App() {
                 element={
                     <ProtectedRoute allowedRoles={["teacher", "admin"]}>
                         <StaffDashboard />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
+                path="/staff/profile" 
+                element={
+                    <ProtectedRoute allowedRoles={["teacher", "admin"]}>
+                        <StaffProfile />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
+                path="/staff/classes" 
+                element={
+                    <ProtectedRoute allowedRoles={["teacher", "admin"]}>
+                        <StaffClasses />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
+                path="/staff/schedule" 
+                element={
+                    <ProtectedRoute allowedRoles={["teacher", "admin"]}>
+                        <StaffSchedule />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
+                path="/staff/notifications" 
+                element={
+                    <ProtectedRoute allowedRoles={["teacher", "admin"]}>
+                        <StaffNotifications />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
+                path="/staff/grades-bulk" 
+                element={
+                    <ProtectedRoute allowedRoles={["teacher", "admin"]}>
+                        <StaffBulkGrades />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
+                path="/staff/reports" 
+                element={
+                    <ProtectedRoute allowedRoles={["teacher", "admin"]}>
+                        <StaffReports />
                     </ProtectedRoute>
                 } 
             />

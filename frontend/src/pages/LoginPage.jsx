@@ -1,7 +1,7 @@
 // src/pages/LoginPage.jsx
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { API_BASE_URL } from "../utils/api";
+import { apiCallJson } from "../utils/api";
 import { login } from "../utils/auth";
 import logo from "../assets/logo.png";
 
@@ -35,42 +35,11 @@ export default function LoginPage() {
         return;
       }
 
-      // 2. Gọi API đăng nhập
-      let response;
-      try {
-        response = await fetch(`${API_BASE_URL}/auth/login`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        });
-      } catch (networkError) {
-        throw new Error(
-          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc đảm bảo server đang chạy."
-        );
-      }
-
-      // 3. Xử lý response
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        throw new Error(
-          "Server trả về dữ liệu không hợp lệ. Vui lòng thử lại sau."
-        );
-      }
-
-      // 4. Xử lý lỗi từ server
-      if (!response.ok) {
-        throw new Error(
-          data.message || data.error || "Đăng nhập thất bại. Vui lòng thử lại."
-        );
-      }
-
-      if (!data.success) {
-        throw new Error(data.message || "Đăng nhập thất bại.");
-      }
+      // 2. Gọi API đăng nhập (tự động hỗ trợ mock nếu bật)
+      const data = await apiCallJson("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
       // 5. Lưu thông tin đăng nhập
       login(data.data.token, data.data.user);
