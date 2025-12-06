@@ -11,6 +11,7 @@ import { createTable as createSemestersTable } from "../src/models/Semester.js";
 import { createTable as createEnrollmentsTable } from "../src/models/Enrollment.js";
 import { createTable as createSchedulesTable } from "../src/models/Schedule.js";
 import { createTable as createGradesTable } from "../src/models/Grade.js";
+import { createTable as createNotificationsTable } from "../src/models/Notification.js";
 
 // Function kiểm tra bảng tồn tại (nhanh)
 const tableExists = async (tableName) => {
@@ -53,6 +54,7 @@ export const migrateAll = async () => {
     await migrateTable("Enrollments", createEnrollmentsTable);
     await migrateTable("Schedules", createSchedulesTable);
     await migrateTable("Grades", createGradesTable);
+    await migrateTable("Notifications", createNotificationsTable);
     console.log("✅ Migration completed!");
   } catch (error) {
     console.error("❌ Migration failed:", error.message);
