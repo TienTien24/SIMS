@@ -15,7 +15,7 @@ const createTable = async () => {
   console.log("✅ Subjects table ready.");
 };
 
-// Create subject (function 'create' đã định nghĩa)
+// Create subject
 const create = async (subjectCode, subjectName, credits = 3, teacherId) => {
   const query =
     "INSERT INTO Subjects (subject_code, subject_name, credits, teacher_id) VALUES (?, ?, ?, ?)";
@@ -41,12 +41,61 @@ const getById = async (id) => {
   return rows[0];
 };
 
+//Get by Name
+const getByName = async (subjectName) => {
+  const query = "SELECT * FROM Subjects WHERE subject_name = ?";
+  const [rows] = await pool.execute(query, [subjectName]);
+  return rows[0];
+};
+
 // Get all
-const getAll = async () => {
-  const query = `SELECT s.*, t.full_name AS teacher_name FROM Subjects s 
-    LEFT JOIN Teachers t ON s.teacher_id = t.id 
-    ORDER BY s.subject_name`;
+const listAll = async () => {
+  let query = `SELECT s.*, t.full_name AS teacher_name FROM Subjects s 
+    LEFT JOIN Teachers t ON s.teacher_id = t.id ORDER BY s.subject_name`;
   const [rows] = await pool.execute(query);
+  return rows;
+};
+
+//Chỉ tìm kiếm khi có filters (search)
+const search = async (filters = {}) => {
+  const { keyword, credits, teacherName } = filters;
+
+  if (!keyword && !credits && !teacherName) {
+    return [];
+  }
+
+  let query = `SELECT s.*, t.full_name AS teacher_name FROM Subjects s 
+    LEFT JOIN Teachers t ON s.teacher_id = t.id`;
+
+  const params = [];
+  const conditions = [];
+
+  if (keyword) {
+    conditions.push("(s.subject_name LIKE ? OR s.subject_code LIKE ?)");
+    params.push(`%${keyword}%`, `%${keyword}%`);
+  }
+
+  if (credits) {
+    const numericCredits = parseInt(credits);
+
+    if (!isNaN(numericCredits) && numericCredits > 0) {
+      conditions.push("s.credits = ?");
+      params.push(numericCredits);
+    }
+  }
+
+  if (teacherName) {
+    conditions.push("t.full_name LIKE ?");
+    params.push(`%${teacherName}%`);
+  }
+
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  query += ` ORDER BY s.subject_name`;
+
+  const [rows] = await pool.execute(query, params);
   return rows;
 };
 
@@ -70,5 +119,13 @@ const deleteById = async (id) => {
   return { message: "Subject deleted" };
 };
 
-// Export tất cả (bao gồm 'create' đã defined)
-export { createTable, create, getById, getAll, update, deleteById };
+export {
+  createTable,
+  create,
+  getById,
+  listAll,
+  search,
+  update,
+  deleteById,
+  getByName,
+};
