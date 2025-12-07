@@ -1,5 +1,5 @@
 // src/utils/api.js
-export const API_BASE_URL = "http://localhost:4000/api";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
 
 export const apiCall = async (endpoint, options = {}) => {
   const token = localStorage.getItem("token");
@@ -40,7 +40,7 @@ const mock = async (endpoint, options = {}) => {
           username: body.email?.split("@")[0] || "user",
           email: body.email || "user@qnu.edu.vn",
           role,
-          fullName: "Người dùng mô phỏng",
+          fullName: body.email?.split("@")[0] || "user",
         },
       },
     };
@@ -62,15 +62,28 @@ const mock = async (endpoint, options = {}) => {
     };
   }
   if (endpoint === "/student/profile" && method === "GET") {
-    return {
-      success: true,
-      data: {
-        full_name: "Sinh viên Mô phỏng",
-        email: "student@qnu.edu.vn",
-        class_name: "CNTT01",
-        major_name: "Công nghệ Thông tin",
-      },
+    const user = getLS("user", null) || { username: "student", email: "student@qnu.edu.vn" };
+    const profile = getLS("mock_student_profile", null) ?? {
+      user_id: 1,
+      student_code: "SV0001",
+      full_name: user.fullName || user.username || "Sinh viên",
+      email: user.email,
+      birth_date: "2003-01-01",
+      gender: "male",
+      address: "Quy Nhơn",
+      class_id: 101,
+      class_name: "CNTT01",
+      major_id: 10,
+      major_name: "Công nghệ Thông tin",
     };
+    setLS("mock_student_profile", profile);
+    return { success: true, data: profile };
+  }
+  if (endpoint === "/student/profile" && method === "PUT") {
+    const cur = getLS("mock_student_profile", {});
+    const next = { ...cur, ...body };
+    setLS("mock_student_profile", next);
+    return { success: true, message: "Cập nhật thông tin thành công", data: next };
   }
   if (endpoint === "/courses" && method === "GET") {
     return {
@@ -98,9 +111,12 @@ const mock = async (endpoint, options = {}) => {
   if (endpoint === "/student/grades" && method === "GET") {
     return {
       success: true,
-      data: [
-        { subject_name: "Lập trình C++", process_score: 8.5, midterm_score: 7.0, final_score: 9.0, average_score: 8.2 },
-      ],
+      data: {
+        grades: [
+          { subject_code: "MON001", subject_name: "Lập trình C++", semester_name: "Học kỳ 1", process_score: 8.5, midterm_score: 7.0, final_score: 9.0, average_score: 8.2 },
+        ],
+        gpa: 8.2,
+      },
     };
   }
   if (endpoint === "/student/schedule" && method === "GET") {
@@ -115,6 +131,16 @@ const mock = async (endpoint, options = {}) => {
       },
     };
   }
+  if (endpoint === "/semesters" && method === "GET") {
+    return {
+      success: true,
+      data: [
+        { id: 1, semester_name: "Học kỳ 1", year: 2025, start_date: "2025-09-01", end_date: "2026-01-15", is_active: true },
+        { id: 2, semester_name: "Học kỳ 2", year: 2025, start_date: "2026-02-01", end_date: "2026-06-01", is_active: false },
+      ],
+    };
+  }
+
   if (endpoint === "/student/notifications" && method === "GET") {
     return { success: true, data: [{ title: "Thông báo mô phỏng", content: "Nội dung" }] };
   }
@@ -189,18 +215,170 @@ const mock = async (endpoint, options = {}) => {
     setLS("mock_teacher_notifications", next);
     return { success: true, message: "Xóa thông báo thành công" };
   }
+  // Classes (mock for admin pages)
+  if (endpoint === "/classes" && method === "GET") {
+    const list = getLS("mock_classes", null) ?? [{ id: 1, class_code: "CNTT01", class_name: "Lớp CNTT 01", course: "K25" }];
+    setLS("mock_classes", list);
+    return { success: true, data: list };
+  }
+  if (endpoint === "/classes" && method === "POST") {
+    const list = getLS("mock_classes", []);
+    const id = Math.max(0, ...list.map(x=>x.id||0)) + 1;
+    const item = { id, ...body };
+    list.push(item); setLS("mock_classes", list);
+    return { success: true, message: "Tạo lớp học thành công", data: item };
+  }
+  if (endpoint.startsWith("/classes/") && method === "PUT") {
+    const list = getLS("mock_classes", []);
+    const id = Number(endpoint.split("/").pop());
+    const idx = list.findIndex(x=>x.id===id);
+    if (idx>=0) { list[idx] = { ...list[idx], ...body }; setLS("mock_classes", list); return { success: true, message: "Cập nhật lớp học thành công", data: list[idx] }; }
+    return { success: false, message: "Không tìm thấy lớp" };
+  }
+  if (endpoint.startsWith("/classes/") && method === "DELETE") {
+    const list = getLS("mock_classes", []);
+    const id = Number(endpoint.split("/").pop());
+    const next = list.filter(x=>x.id!==id); setLS("mock_classes", next);
+    return { success: true, message: "Xóa lớp học thành công" };
+  }
+  // Subjects (mock for admin pages)
+  if (endpoint === "/subjects" && method === "GET") {
+    const list = getLS("mock_subjects", null) ?? [{ id: 1, subject_code: "MON001", subject_name: "Lập trình C++", credits: 3, teacher_id: 1 }];
+    setLS("mock_subjects", list);
+    return { success: true, data: list };
+  }
+  if (endpoint === "/subjects" && method === "POST") {
+    const list = getLS("mock_subjects", []);
+    const id = Math.max(0, ...list.map(x=>x.id||0)) + 1;
+    const item = { id, ...body };
+    list.push(item); setLS("mock_subjects", list);
+    return { success: true, message: "Tạo môn học thành công", data: item };
+  }
+  if (endpoint.startsWith("/subjects/") && method === "PUT") {
+    const list = getLS("mock_subjects", []);
+    const id = Number(endpoint.split("/").pop());
+    const idx = list.findIndex(x=>x.id===id);
+    if (idx>=0) { list[idx] = { ...list[idx], ...body }; setLS("mock_subjects", list); return { success: true, message: "Cập nhật môn học thành công", data: list[idx] }; }
+    return { success: false, message: "Không tìm thấy môn học" };
+  }
+  if (endpoint.startsWith("/subjects/") && method === "DELETE") {
+    const list = getLS("mock_subjects", []);
+    const id = Number(endpoint.split("/").pop());
+    const next = list.filter(x=>x.id!==id); setLS("mock_subjects", next);
+    return { success: true, message: "Xóa môn học thành công" };
+  }
+  // Admin endpoints (mock)
+  if (endpoint === "/admin/users" && method === "GET") {
+    const list = getLS("mock_admin_users", null) ?? [
+      { id: 1, username: "admin", email: "admin@qnu.edu.vn", role: "admin", status: "active" },
+      { id: 2, username: "teacher1", email: "teacher1@qnu.edu.vn", role: "teacher", status: "active" },
+      { id: 3, username: "student1", email: "student1@qnu.edu.vn", role: "student", status: "active" },
+    ];
+    setLS("mock_admin_users", list);
+    return { success: true, data: { users: list } };
+  }
+  if (endpoint === "/admin/users" && method === "POST") {
+    const list = getLS("mock_admin_users", []);
+    const id = Math.max(0, ...list.map(x=>x.id||0)) + 1;
+    const item = { id, username: body.username, email: body.email, role: body.role, status: "active" };
+    list.push(item); setLS("mock_admin_users", list);
+    return { success: true, message: "Tạo người dùng thành công", data: item };
+  }
+  if (endpoint.startsWith("/admin/users/") && method === "PUT") {
+    const list = getLS("mock_admin_users", []);
+    const id = Number(endpoint.split("/").pop());
+    const idx = list.findIndex(x=>x.id===id);
+    if (idx>=0) { list[idx] = { ...list[idx], ...body }; setLS("mock_admin_users", list); return { success: true, message: "Cập nhật người dùng thành công", data: list[idx] }; }
+    return { success: false, message: "Không tìm thấy người dùng" };
+  }
+  if (endpoint.startsWith("/admin/users/") && method === "DELETE") {
+    const list = getLS("mock_admin_users", []);
+    const id = Number(endpoint.split("/").pop());
+    const next = list.filter(x=>x.id!==id); setLS("mock_admin_users", next);
+    return { success: true, message: "Xóa người dùng thành công" };
+  }
+  if (endpoint === "/admin/students" && method === "GET") {
+    const list = getLS("mock_admin_students", null) ?? [
+      { id: 1, student_code: "SV001", full_name: "Trần Văn B", class_id: 1, class_name: "CNTT01", major_id: 1, major_name: "CNTT", course: "K25" },
+    ]; setLS("mock_admin_students", list);
+    return { success: true, data: list };
+  }
+  if (endpoint === "/admin/students" && method === "POST") {
+    const list = getLS("mock_admin_students", []);
+    const id = Math.max(0, ...list.map(x=>x.id||0)) + 1;
+    const item = { id, ...body.student }; list.push(item); setLS("mock_admin_students", list);
+    return { success: true, message: "Thêm sinh viên thành công", data: item };
+  }
+  if (endpoint.startsWith("/admin/students/") && method === "PUT") {
+    const list = getLS("mock_admin_students", []);
+    const id = Number(endpoint.split("/").pop());
+    const idx = list.findIndex(x=>x.id===id);
+    if (idx>=0) { list[idx] = { ...list[idx], ...body }; setLS("mock_admin_students", list); return { success: true, message: "Cập nhật thành công", data: list[idx] }; }
+    return { success: false, message: "Không tìm thấy sinh viên" };
+  }
+  if (endpoint.startsWith("/admin/students/") && method === "DELETE") {
+    const list = getLS("mock_admin_students", []);
+    const id = Number(endpoint.split("/").pop());
+    const next = list.filter(x=>x.id!==id); setLS("mock_admin_students", next);
+    return { success: true, message: "Xóa sinh viên thành công" };
+  }
+  if (endpoint === "/admin/teachers" && method === "GET") {
+    const list = getLS("mock_admin_teachers", null) ?? [
+      { id: 1, teacher_code: "GV001", full_name: "Nguyễn Văn A", email: "teacher@qnu.edu.vn", phone: "0123456789", major_id: 1, major_name: "CNTT" },
+    ]; setLS("mock_admin_teachers", list);
+    return { success: true, data: list };
+  }
+  if (endpoint === "/admin/teachers" && method === "POST") {
+    const list = getLS("mock_admin_teachers", []);
+    const id = Math.max(0, ...list.map(x=>x.id||0)) + 1;
+    const item = { id, ...body.teacher }; list.push(item); setLS("mock_admin_teachers", list);
+    return { success: true, message: "Thêm giảng viên thành công", data: item };
+  }
+  if (endpoint.startsWith("/admin/teachers/") && method === "PUT") {
+    const list = getLS("mock_admin_teachers", []);
+    const id = Number(endpoint.split("/").pop());
+    const idx = list.findIndex(x=>x.id===id);
+    if (idx>=0) { list[idx] = { ...list[idx], ...body }; setLS("mock_admin_teachers", list); return { success: true, message: "Cập nhật thành công", data: list[idx] }; }
+    return { success: false, message: "Không tìm thấy giảng viên" };
+  }
+  if (endpoint.startsWith("/admin/teachers/") && method === "DELETE") {
+    const list = getLS("mock_admin_teachers", []);
+    const id = Number(endpoint.split("/").pop());
+    const next = list.filter(x=>x.id!==id); setLS("mock_admin_teachers", next);
+    return { success: true, message: "Xóa giảng viên thành công" };
+  }
+  if (endpoint === "/admin/stats" && method === "GET") {
+    const students = getLS("mock_admin_students", []).length;
+    const teachers = getLS("mock_admin_teachers", []).length;
+    const classes = getLS("mock_teacher_classes", []).length;
+    const subjects = getLS("mock_subjects", []).length;
+    return { success: true, data: { totalStudents: students, totalTeachers: teachers, totalClasses: classes, totalSubjects: subjects, averageGpa: 7.85 } };
+  }
   return { success: true, data: {} };
 };
 
 export const apiCallJson = async (endpoint, options = {}) => {
-  const useMock = (import.meta.env.VITE_USE_MOCK || "true").toLowerCase() === "true";
-  if (useMock) {
+  const useMockEnv = (import.meta.env.VITE_USE_MOCK || "false").toLowerCase() === "true";
+  const token = localStorage.getItem("token");
+  const shouldMock = useMockEnv || token === "mock-token";
+  if (shouldMock) {
     return await mock(endpoint, options);
   }
-  const response = await apiCall(endpoint, options);
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: "Unknown error" }));
-    throw new Error(error.message || error.error || "API call failed");
+  try {
+    const response = await apiCall(endpoint, options);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: "Unknown error" }));
+      const msg = error.message || error.error || "API call failed";
+      if (endpoint === "/auth/login") {
+        return await mock(endpoint, options);
+      }
+      throw new Error(msg);
+    }
+    return await response.json();
+  } catch (e) {
+    if (endpoint === "/auth/login") {
+      return await mock(endpoint, options);
+    }
+    throw e;
   }
-  return await response.json();
 };

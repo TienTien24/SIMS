@@ -14,6 +14,18 @@ const StudentProfile = () => {
   const [profile, setProfile] = useState(null);
   const [editProfile, setEditProfile] = useState({});
 
+  const toISO = (val) => {
+    if (!val) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val; // already ISO
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+      const [d,m,y] = val.split("/");
+      return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+    }
+    const dt = new Date(val);
+    if (!isNaN(dt.getTime())) return dt.toISOString().slice(0,10);
+    return "";
+  };
+
   useEffect(() => {
     if (!user) return;
     loadProfile();
@@ -22,8 +34,13 @@ const StudentProfile = () => {
   const loadProfile = async () => {
     try {
       const data = await apiCallJson("/student/profile");
-      setProfile(data.data);
-      setEditProfile(data.data || {});
+      const p = data.data || {};
+      setProfile(p);
+      setEditProfile({
+        ...p,
+        birth_date: toISO(p.birth_date),
+        gender: ["male","female","other"].includes(p.gender) ? p.gender : "",
+      });
     } catch (err) {
       console.error("Load profile error:", err);
       setError("Không thể tải thông tin cá nhân");
@@ -37,9 +54,15 @@ const StudentProfile = () => {
     setSuccess("");
 
     try {
+      const payload = {
+        full_name: editProfile.full_name,
+        birth_date: toISO(editProfile.birth_date),
+        gender: editProfile.gender || null,
+        address: editProfile.address || null,
+      };
       const data = await apiCallJson("/student/profile", {
         method: "PUT",
-        body: JSON.stringify(editProfile),
+        body: JSON.stringify(payload),
       });
       setProfile(data.data);
       setSuccess("Cập nhật thông tin thành công!");
@@ -97,7 +120,7 @@ const StudentProfile = () => {
                   type="date"
                   value={editProfile.birth_date || ""}
                   onChange={(e) =>
-                    setEditProfile({ ...editProfile, birth_date: e.target.value })
+                    setEditProfile({ ...editProfile, birth_date: toISO(e.target.value) })
                   }
                 />
               </div>

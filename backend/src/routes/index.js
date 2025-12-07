@@ -3,6 +3,7 @@ import authRoutes from "./authRoutes.js";
 import studentRoutes from "./studentRoutes.js";
 import teacherRoutes from "./teacherRoutes.js";
 import adminRoutes from "./adminRoutes.js";
+import { pool } from "../config/db.config.js";
 import classesRoutes from "./classesRoutes.js";
 import subjectsRoutes from "./subjectsRoutes.js";
 import { getAllSubjects } from "../controllers/subjectsController.js";
@@ -14,6 +15,18 @@ router.use("/auth", authRoutes);
 router.use("/student", studentRoutes);
 router.use("/teacher", teacherRoutes);
 router.use("/admin", adminRoutes);
+
+// Danh sách học kỳ
+router.get("/semesters", async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, semester_name, year, start_date, end_date, is_active FROM Semesters ORDER BY year DESC, semester_name"
+    );
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Không thể tải danh sách học kỳ" });
+  }
+});
 
 // Resource routes
 router.use("/classes", classesRoutes);

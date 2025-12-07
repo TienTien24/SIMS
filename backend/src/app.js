@@ -32,7 +32,7 @@ const routesModule = await import("./routes/index.js");
 app.use("/api", routesModule.default);
 
 // Error handler
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error("Server error:", err.stack);
   res.status(500).json({ error: "Internal server error!" });
 });

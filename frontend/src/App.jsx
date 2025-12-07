@@ -17,6 +17,12 @@ import StaffNotifications from './pages/staff/StaffNotifications';
 import StaffBulkGrades from './pages/staff/StaffBulkGrades';
 import StaffReports from './pages/staff/StaffReports';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers.jsx';
+import AdminStudents from './pages/admin/AdminStudents.jsx';
+import AdminTeachers from './pages/admin/AdminTeachers.jsx';
+import AdminClasses from './pages/admin/AdminClasses.jsx';
+import AdminSubjects from './pages/admin/AdminSubjects.jsx';
+import AdminReports from './pages/admin/AdminReports.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
@@ -139,6 +145,54 @@ export default function App() {
                 element={
                     <ProtectedRoute allowedRoles={["admin"]}>
                         <AdminDashboard />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
+                path="/admin/users" 
+                element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                        <AdminUsers />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
+                path="/admin/students" 
+                element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                        <AdminStudents />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
+                path="/admin/teachers" 
+                element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                        <AdminTeachers />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
+                path="/admin/classes" 
+                element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                        <AdminClasses />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
+                path="/admin/subjects" 
+                element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                        <AdminSubjects />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
+                path="/admin/reports" 
+                element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                        <AdminReports />
                     </ProtectedRoute>
                 } 
             />

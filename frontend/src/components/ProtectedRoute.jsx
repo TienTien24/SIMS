@@ -1,5 +1,5 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { isAuthenticated, getUserRole } from "../utils/auth";
 
 /**
@@ -9,9 +9,10 @@ import { isAuthenticated, getUserRole } from "../utils/auth";
  * @param {string} redirectTo - Route redirect nếu không có quyền (mặc định: /login)
  */
 const ProtectedRoute = ({ children, allowedRoles = [], redirectTo = "/login" }) => {
+  const location = useLocation();
   // Kiểm tra authentication
   if (!isAuthenticated()) {
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to={redirectTo} replace state={{ from: location.pathname }} />;
   }
 
   // Kiểm tra role nếu có yêu cầu
@@ -19,8 +20,7 @@ const ProtectedRoute = ({ children, allowedRoles = [], redirectTo = "/login" }) 
     const userRole = getUserRole();
     
     if (!userRole || !allowedRoles.includes(userRole)) {
-      // Redirect về trang chủ nếu không có quyền
-      return <Navigate to="/" replace />;
+      return <Navigate to={redirectTo} replace state={{ from: location.pathname }} />;
     }
   }
 

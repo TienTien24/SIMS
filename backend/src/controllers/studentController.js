@@ -3,7 +3,7 @@ import { pool } from "../config/db.config.js";
 import * as StudentModel from "../models/Student.js";
 import * as GradeModel from "../models/Grade.js";
 import * as EnrollmentModel from "../models/Enrollment.js";
-import * as ScheduleModel from "../models/Schedule.js";
+// import * as ScheduleModel from "../models/Schedule.js";
 // Semester model không cần import vì chỉ dùng query trực tiếp
 
 /**
@@ -61,7 +61,7 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    // Chỉ cho phép cập nhật một số field nhất định
+    
     const allowedFields = ["full_name", "birth_date", "gender", "address"];
     const updates = {};
 
@@ -69,6 +69,10 @@ export const updateProfile = async (req, res) => {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
       }
+    }
+    if (updates.birth_date && /^\d{2}\/\d{2}\/\d{4}$/.test(updates.birth_date)) {
+      const [d, m, y] = updates.birth_date.split("/");
+      updates.birth_date = `${y}-${m}-${d}`;
     }
 
     if (Object.keys(updates).length === 0) {
@@ -304,7 +308,7 @@ export const getSchedule = async (req, res) => {
   try {
     const userId = req.user.id;
     const studentId = await getStudentIdByUserId(userId);
-    const { semester_id } = req.query;
+    const { semester_id, year, semester_name, week, view } = req.query;
 
     if (!studentId) {
       return res.status(404).json({
@@ -322,12 +326,22 @@ export const getSchedule = async (req, res) => {
       });
     }
 
-    // Lấy semester_id hiện tại nếu không có
+    // Xác định học kỳ theo id hoặc theo (năm + tên)
     let activeSemesterId = semester_id;
     if (!activeSemesterId) {
-      const query = "SELECT id FROM Semesters WHERE is_active = TRUE LIMIT 1";
-      const [rows] = await pool.execute(query);
-      activeSemesterId = rows[0]?.id;
+      if (year && semester_name) {
+        const [rows] = await pool.execute(
+          "SELECT id FROM Semesters WHERE year = ? AND semester_name = ? LIMIT 1",
+          [year, semester_name]
+        );
+        activeSemesterId = rows[0]?.id;
+      }
+      if (!activeSemesterId) {
+        const [rows] = await pool.execute(
+          "SELECT id FROM Semesters WHERE is_active = TRUE LIMIT 1"
+        );
+        activeSemesterId = rows[0]?.id;
+      }
     }
 
     if (!activeSemesterId) {
@@ -337,18 +351,74 @@ export const getSchedule = async (req, res) => {
       });
     }
 
-    const schedule = await ScheduleModel.getByClassAndSemester(
-      student.class_id,
-      activeSemesterId
+    const [rows] = await pool.execute(
+      `SELECT sch.*, c.class_name, c.class_code, sub.subject_name, sub.subject_code, t.full_name AS teacher_name 
+       FROM Schedules sch 
+       JOIN Classes c ON sch.class_id = c.id 
+       JOIN Subjects sub ON sch.subject_id = sub.id 
+       LEFT JOIN Teachers t ON sch.teacher_id = t.id 
+       WHERE sch.class_id = ? AND sch.semester_id = ? 
+       ORDER BY sch.day_of_week, sch.period`,
+      [student.class_id, activeSemesterId]
     );
+
+    // Tính toán tuần nếu có yêu cầu
+    let weekInfo = null;
+    if (week) {
+      const [semRows] = await pool.execute(
+        "SELECT start_date, end_date FROM Semesters WHERE id = ?",
+        [activeSemesterId]
+      );
+      const sem = semRows[0];
+      if (sem?.start_date) {
+        const start = new Date(sem.start_date);
+        const weekIdx = parseInt(week, 10) - 1;
+        const weekStart = new Date(start);
+        weekStart.setDate(start.getDate() + weekIdx * 7);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        weekInfo = {
+          week_start: weekStart.toISOString().slice(0, 10),
+          week_end: weekEnd.toISOString().slice(0, 10),
+        };
+      }
+    }
+
+    // Chế độ xem theo tuần hoặc theo học phần
+    let payload = rows;
+    if (view === "course") {
+      const map = new Map();
+      rows.forEach((r) => {
+        const key = r.subject_id;
+        const cur = map.get(key) || {
+          subject_id: r.subject_id,
+          subject_code: r.subject_code,
+          subject_name: r.subject_name,
+          class_code: r.class_code,
+          class_name: r.class_name,
+          teacher_name: r.teacher_name,
+          periods: 0,
+        };
+        // Ước lượng số tiết từ field 'period' nếu là phạm vi "1-3"
+        let count = 1;
+        if (typeof r.period === "string") {
+          const m = r.period.match(/(\d+)-(\d+)/);
+          if (m) count = Math.abs(parseInt(m[2]) - parseInt(m[1])) + 1;
+        }
+        cur.periods += count;
+        map.set(key, cur);
+      });
+      payload = Array.from(map.values());
+    }
 
     res.json({
       success: true,
       message: "Lấy lịch học thành công",
       data: {
-        schedule,
+        schedule: payload,
         class_name: student.class_name,
         semester_id: activeSemesterId,
+        ...(weekInfo || {}),
       },
     });
   } catch (error) {
@@ -367,15 +437,24 @@ export const getSchedule = async (req, res) => {
 // GET /api/student/notifications - Lấy thông báo
 export const getNotifications = async (req, res) => {
   try {
-    // TODO: Implement notifications table và logic
-    res.json({
-      success: true,
-      message: "Lấy thông báo thành công",
-      data: {
-        notifications: [],
-        note: "Chức năng thông báo sẽ được triển khai sau",
-      },
-    });
+    const userId = req.user.id;
+    const studentId = await getStudentIdByUserId(userId);
+    if (!studentId) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy thông tin sinh viên" });
+    }
+    const student = await StudentModel.getById(studentId);
+    const [notifRows] = await pool.execute(
+      `SELECT n.*, c.class_name, s.subject_name, t.full_name AS teacher_name 
+       FROM Notifications n 
+       LEFT JOIN Classes c ON n.class_id = c.id 
+       LEFT JOIN Subjects s ON n.subject_id = s.id 
+       LEFT JOIN Teachers t ON n.teacher_id = t.id 
+       WHERE (n.class_id IS NULL OR n.class_id = ?) 
+          OR n.subject_id IN (SELECT subject_id FROM Enrollments WHERE student_id = ?) 
+       ORDER BY n.created_at DESC LIMIT 50`,
+      [student.class_id || null, studentId]
+    );
+    res.json({ success: true, message: "Lấy thông báo thành công", data: { notifications: notifRows } });
   } catch (error) {
     console.error("Get notifications error:", error);
     res.status(500).json({

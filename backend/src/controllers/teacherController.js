@@ -1,8 +1,6 @@
 import { pool } from "../config/db.config.js";
 import * as TeacherModel from "../models/Teacher.js";
-import * as ScheduleModel from "../models/Schedule.js";
 import * as ClassModel from "../models/Class.js";
-import * as SubjectModel from "../models/Subject.js";
 import * as GradeModel from "../models/Grade.js";
 import * as NotificationModel from "../models/Notification.js";
 
@@ -183,4 +181,3 @@ export const listNotifications = async (req, res) => {
     res.status(500).json({ success: false, message: "Lỗi máy chủ" });
   }
 };
-

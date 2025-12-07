@@ -71,10 +71,12 @@ const AdminDashboard = () => {
         <section className="info-card">
           <h3>Tác vụ quản trị</h3>
           <div className="admin-actions">
-            <button className="action-btn admin-btn">Quản lý người dùng</button>
-            <button className="action-btn admin-btn">Quản lý khóa học</button>
-            <button className="action-btn admin-btn">Thống kê</button>
-            <button className="action-btn admin-btn">Cấu hình</button>
+            <button className="action-btn admin-btn" onClick={()=>navigate("/admin/users")}>Quản lý người dùng</button>
+            <button className="action-btn admin-btn" onClick={()=>navigate("/admin/students")}>Quản lý sinh viên</button>
+            <button className="action-btn admin-btn" onClick={()=>navigate("/admin/teachers")}>Quản lý giảng viên</button>
+            <button className="action-btn admin-btn" onClick={()=>navigate("/admin/classes")}>Quản lý lớp học</button>
+            <button className="action-btn admin-btn" onClick={()=>navigate("/admin/subjects")}>Quản lý môn học</button>
+            <button className="action-btn admin-btn" onClick={()=>navigate("/admin/reports")}>Thống kê & báo cáo</button>
           </div>
         </section>
       </main>
