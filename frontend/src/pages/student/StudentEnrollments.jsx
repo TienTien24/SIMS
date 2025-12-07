@@ -101,29 +101,50 @@ const StudentEnrollments = () => {
         </div>
       </header>
 
-      {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
-
       <main className="dashboard-main">
+        {(error || success) && (
+          <div className={`alert ${error ? "alert-error" : "alert-success"}`}>
+            {error || success}
+          </div>
+        )}
+
         <section className="dashboard-section">
           {/* Form đăng ký */}
           <div className="info-card" style={{ marginBottom: "2rem" }}>
             <h3>Đăng ký môn học mới</h3>
             <form onSubmit={handleEnroll} className="form-stack">
-              <div className="form-group">
-                <label>Mã lớp</label>
-                <input
-                  type="text"
-                  value={enrollForm.class_id}
-                  onChange={(e) =>
-                    setEnrollForm({ ...enrollForm, class_id: e.target.value })
-                  }
-                  required
-                />
+              <div className="form-row two-columns">
+                <div className="form-group">
+                  <label className="form-label">Mã lớp</label>
+                  <input
+                    className="form-control"
+                    type="text"
+                    placeholder="1"
+                    value={enrollForm.class_id}
+                    onChange={(e) =>
+                      setEnrollForm({ ...enrollForm, class_id: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Học kỳ ID</label>
+                  <input
+                    className="form-control"
+                    type="number"
+                    placeholder="1"
+                    value={enrollForm.semester_id}
+                    onChange={(e) =>
+                      setEnrollForm({ ...enrollForm, semester_id: e.target.value })
+                    }
+                    required
+                  />
+                </div>
               </div>
               <div className="form-group">
-                <label>Môn học</label>
+                <label className="form-label">Môn học</label>
                 <select
+                  className="form-control"
                   value={enrollForm.subject_id}
                   onChange={(e) =>
                     setEnrollForm({ ...enrollForm, subject_id: e.target.value })
@@ -138,20 +159,11 @@ const StudentEnrollments = () => {
                   ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Học kỳ ID</label>
-                <input
-                  type="number"
-                  value={enrollForm.semester_id}
-                  onChange={(e) =>
-                    setEnrollForm({ ...enrollForm, semester_id: e.target.value })
-                  }
-                  required
-                />
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? "Đang đăng ký..." : "Đăng ký môn học"}
+                </button>
               </div>
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? "Đang đăng ký..." : "Đăng ký"}
-              </button>
             </form>
           </div>
 
@@ -195,15 +207,29 @@ const StudentEnrollments = () => {
                         </span>
                       </td>
                       <td>
-                        {enrollment.status === "registered" && (
+                        <div style={{display: "flex", gap: "0.5rem", flexWrap: "wrap"}}>
+                          {enrollment.status === "registered" && (
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={() => handleCancelEnrollment(enrollment.id)}
+                              disabled={loading}
+                            >
+                              Hủy
+                            </button>
+                          )}
                           <button
-                            className="btn btn-sm btn-danger"
-                            onClick={() => handleCancelEnrollment(enrollment.id)}
-                            disabled={loading}
+                            className="btn btn-sm btn-secondary"
+                            onClick={() => navigate("/student/grades")}
                           >
-                            Hủy
+                            Xem điểm
                           </button>
-                        )}
+                          <button
+                            className="btn btn-sm btn-secondary"
+                            onClick={() => navigate("/student/schedule")}
+                          >
+                            Xem lịch
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

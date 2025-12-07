@@ -32,7 +32,12 @@ export default function StaffClasses() {
 
   return (
     <div className="dashboard-container">
-      <header className="dashboard-header"><h1>Quản lý lớp học</h1></header>
+      <header className="dashboard-header">
+        <h1>Quản lý lớp học</h1>
+        <div className="user-info">
+          <button className="btn btn-secondary" onClick={() => window.history.back()}>Quay lại</button>
+        </div>
+      </header>
       <main className="dashboard-main">
         {(msg || err) && (<div className={`alert ${err?"alert-error":"alert-success"}`}>{err || msg}</div>)}
         <section className="info-card">
@@ -54,25 +59,49 @@ export default function StaffClasses() {
           ) : (<p>Chưa có lớp.</p>)}
         </section>
         <section className="info-card">
-          <h3>Thêm lớp</h3>
-          <div className="form-row">
-            <input placeholder="Mã lớp" value={form.class_code} onChange={(e)=>setForm({...form, class_code:e.target.value})} />
-            <input placeholder="Tên lớp" value={form.class_name} onChange={(e)=>setForm({...form, class_name:e.target.value})} />
-            <input placeholder="Khóa" value={form.course} onChange={(e)=>setForm({...form, course:e.target.value})} />
+          <h3>Thêm lớp học mới</h3>
+          <div className="form-stack">
+            <div className="form-row two-columns">
+              <div className="form-group">
+                <label className="form-label">Mã lớp</label>
+                <input className="form-control" placeholder="CNTT01" value={form.class_code} onChange={(e)=>setForm({...form, class_code:e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Khóa học</label>
+                <input className="form-control" placeholder="K25" value={form.course} onChange={(e)=>setForm({...form, course:e.target.value})} />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Tên lớp</label>
+              <input className="form-control" placeholder="Lớp CNTT 01" value={form.class_name} onChange={(e)=>setForm({...form, class_name:e.target.value})} />
+            </div>
+            <div className="form-actions">
+              <button className="btn btn-primary" onClick={create}>Thêm lớp</button>
+            </div>
           </div>
-          <button className="btn btn-primary" onClick={create}>Thêm</button>
         </section>
         {editing && (
           <section className="info-card">
-            <h3>Cập nhật lớp</h3>
-            <div className="form-row">
-              <input placeholder="Mã lớp" value={editing.class_code} onChange={(e)=>setEditing({...editing, class_code:e.target.value})} />
-              <input placeholder="Tên lớp" value={editing.class_name} onChange={(e)=>setEditing({...editing, class_name:e.target.value})} />
-              <input placeholder="Khóa" value={editing.course} onChange={(e)=>setEditing({...editing, course:e.target.value})} />
-            </div>
-            <div className="action-buttons" style={{gap:"0.75rem"}}>
-              <button className="btn btn-primary" onClick={()=>update(editing.id)}>Cập nhật</button>
-              <button className="btn btn-secondary" onClick={()=>setEditing(null)}>Hủy</button>
+            <h3>Cập nhật lớp học</h3>
+            <div className="form-stack">
+              <div className="form-row two-columns">
+                <div className="form-group">
+                  <label className="form-label">Mã lớp</label>
+                  <input className="form-control" placeholder="CNTT01" value={editing.class_code} onChange={(e)=>setEditing({...editing, class_code:e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Khóa học</label>
+                  <input className="form-control" placeholder="K25" value={editing.course} onChange={(e)=>setEditing({...editing, course:e.target.value})} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tên lớp</label>
+                <input className="form-control" placeholder="Lớp CNTT 01" value={editing.class_name} onChange={(e)=>setEditing({...editing, class_name:e.target.value})} />
+              </div>
+              <div className="form-actions">
+                <button className="btn btn-primary" onClick={()=>update(editing.id)}>Cập nhật</button>
+                <button className="btn btn-secondary" onClick={()=>setEditing(null)}>Hủy</button>
+              </div>
             </div>
           </section>
         )}

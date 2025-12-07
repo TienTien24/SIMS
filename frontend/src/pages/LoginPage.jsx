@@ -22,13 +22,14 @@ export default function LoginPage() {
     }
   }, [location]);
 
+  // giữ nguyên captcha cũ: eb.com
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      // 1. Kiểm tra captcha
       if (captcha.toLowerCase() !== "eb.com") {
         setError("Mã bảo vệ không đúng. Vui lòng nhập: eb.com");
         setLoading(false);
@@ -117,9 +118,7 @@ export default function LoginPage() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="captcha" className="form-label">
-              Mã bảo vệ
-            </label>
+            <label htmlFor="captcha" className="form-label">Mã bảo vệ</label>
             <div className="captcha-group">
               <input
                 id="captcha"
