@@ -1,29 +1,52 @@
 // src/pages/StudentDashboard.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { logout, getUser } from "../utils/auth";
+import { apiCallJson } from "../utils/api";
 import "../styles/dashboard.css";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const user = getUser();
 
+  const [studentInfo, setStudentInfo] = useState(null);
+
   const handleLogout = () => {
     logout();
     navigate("/");
   };
 
-  // ProtectedRoute đã xử lý authentication và authorization
+  useEffect(() => {
+    const fetchStudentProfile = async () => {
+      try {
+        const response = await apiCallJson("/student/profile");
+        if (response.data) {
+          setStudentInfo(response.data);
+        }
+      } catch (err) {
+        console.error("Lỗi tải thông tin sinh viên:", err);
+      }
+    };
+
+    if (user) {
+      fetchStudentProfile();
+    }
+  }, [user]);
+
   if (!user) {
     return <div>Đang tải...</div>;
   }
+
+  const displayName = studentInfo?.full_name || user.fullName || user.username;
+  const displayStudentCode = studentInfo?.student_code || "Đang cập nhật...";
+  const displayEmail = studentInfo?.email || user.email;
 
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
         <h1>Bảng điều khiển sinh viên</h1>
         <div className="user-info">
-          <span>{user.fullName || user.username}</span>
+          <span>{displayName}</span>
           <button onClick={handleLogout} className="logout-btn">
             Đăng xuất
           </button>
@@ -32,9 +55,9 @@ const StudentDashboard = () => {
 
       <main className="dashboard-main">
         <section className="welcome-section">
-          <h2>Xin chào, {user.fullName || user.username}!</h2>
+          <h2>Xin chào, {displayName}!</h2>
           <p>
-            Email: <strong>{user.email}</strong> · Vai trò:{" "}
+            Email: <strong>{displayEmail}</strong> · Vai trò:{" "}
             <strong>Sinh viên</strong>
           </p>
           <ul>
@@ -52,21 +75,23 @@ const StudentDashboard = () => {
           <article className="feature-card feature-card-profile">
             <div className="feature-card-header">
               <div className="feature-card-icon feature-icon-profile">👤</div>
-            <h3>Hồ sơ học tập</h3>
+              <h3>Hồ sơ học tập</h3>
             </div>
             <div className="feature-card-content">
-            <div className="info-item">
-              <strong>Họ tên</strong>
-              <span>{user.fullName || user.username}</span>
-            </div>
-            <div className="info-item">
-              <strong>Email</strong>
-              <span>{user.email}</span>
-            </div>
-            <div className="info-item">
-              <strong>MSSV</strong>
-              <span>{user.studentId || "Chưa cập nhật"}</span>
-            </div>
+              <div className="info-item">
+                <strong>Họ tên</strong>
+                <span>{displayName}</span>
+              </div>
+              <div className="info-item">
+                <strong>Email</strong>
+                <span style={{ fontSize: '0.9rem' }}>{displayEmail}</span>
+              </div>
+              <div className="info-item">
+                <strong>MSSV</strong>
+                <span style={{ color: '#2b6cb0', fontWeight: 'bold' }}>
+                  {displayStudentCode}
+                </span>
+              </div>
             </div>
             <button
               className="feature-card-btn feature-btn-profile"

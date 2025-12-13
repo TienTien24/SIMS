@@ -1,20 +1,11 @@
 // src/controllers/studentController.js
-import { pool } from "../config/db.config.js";
 import * as StudentModel from "../models/Student.js";
 import * as GradeModel from "../models/Grade.js";
 import * as EnrollmentModel from "../models/Enrollment.js";
 import * as ScheduleModel from "../models/Schedule.js";
-// Semester model không cần import vì chỉ dùng query trực tiếp
-
-/**
- * Helper: Lấy student_id từ user_id
- */
-const getStudentIdByUserId = async (userId) => {
-  const query = "SELECT id FROM Students WHERE user_id = ?";
-  const [rows] = await pool.execute(query, [userId]);
-  return rows[0]?.id;
-};
-
+import * as SemesterModel from "../models/Semester.js";
+import { getStudentIdByUserId } from "../utils/studentUtils.js";
+import { calculateGPA } from "../utils/studentCalculations.js";
 /**
  * 1. Xem và cập nhật thông tin cá nhân
  */
@@ -61,7 +52,7 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    // Chỉ cho phép cập nhật một số field nhất định
+    // Lấy các trường đã được validation cho phép
     const allowedFields = ["full_name", "birth_date", "gender", "address"];
     const updates = {};
 
@@ -69,13 +60,6 @@ export const updateProfile = async (req, res) => {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
       }
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Không có thông tin nào để cập nhật",
-      });
     }
 
     const updatedStudent = await StudentModel.update(studentId, updates);
@@ -101,23 +85,17 @@ export const updateProfile = async (req, res) => {
 // GET /api/student/grades - Lấy điểm số (có thể filter theo semester)
 export const getGrades = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const studentId = await getStudentIdByUserId(userId);
+    const studentId = await checkStudentId(req, res);
+    if (!studentId) return; // Đã gửi response 404
+
     const { semester_id } = req.query;
-
-    if (!studentId) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy thông tin sinh viên",
-      });
-    }
-
     let grades;
+
     if (semester_id) {
       // Lấy điểm theo học kỳ cụ thể
       grades = await GradeModel.getByStudentAndSemester(studentId, semester_id);
     } else {
-      // Lấy tất cả điểm (cần thêm function getAllByStudent)
+      // Lấy tất cả điểm
       const query = `SELECT g.*, sub.subject_name, sub.subject_code, sub.credits, sem.semester_name, sem.year 
         FROM Grades g 
         JOIN Subjects sub ON g.subject_id = sub.id 
@@ -128,24 +106,15 @@ export const getGrades = async (req, res) => {
       grades = rows;
     }
 
-    // Tính GPA nếu có điểm
-    let gpa = null;
-    if (grades.length > 0) {
-      const totalPoints = grades.reduce((sum, g) => {
-        const score = parseFloat(g.average_score) || 0;
-        const credits = parseFloat(g.credits) || 0;
-        return sum + score * credits;
-      }, 0);
-      const totalCredits = grades.reduce((sum, g) => sum + (parseFloat(g.credits) || 0), 0);
-      gpa = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : 0;
-    }
+    // Tính GPA (Sử dụng helper đã import)
+    const gpa = calculateGPA(grades); // 👈 SỬ DỤNG HÀM TỪ UTILS
 
     res.json({
       success: true,
       message: "Lấy điểm số thành công",
       data: {
         grades,
-        gpa: gpa ? parseFloat(gpa) : null,
+        gpa: gpa,
         totalSubjects: grades.length,
       },
     });
@@ -170,26 +139,15 @@ export const getEnrollments = async (req, res) => {
     const { semester_id } = req.query;
 
     if (!studentId) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy thông tin sinh viên",
-      });
+      return res.status(404).json({ success: false, message: "Không tìm thấy thông tin sinh viên" });
     }
 
     let enrollments;
+
     if (semester_id) {
       enrollments = await EnrollmentModel.getByStudent(studentId, semester_id);
     } else {
-      // Lấy tất cả enrollments của student
-      const query = `SELECT e.*, c.class_name, sub.subject_name, sub.subject_code, sub.credits, sem.semester_name, sem.year 
-        FROM Enrollments e 
-        JOIN Classes c ON e.class_id = c.id 
-        JOIN Subjects sub ON e.subject_id = sub.id 
-        JOIN Semesters sem ON e.semester_id = sem.id 
-        WHERE e.student_id = ? 
-        ORDER BY sem.year DESC, sem.semester_name DESC, e.enrollment_date DESC`;
-      const [rows] = await pool.execute(query, [studentId]);
-      enrollments = rows;
+      enrollments = await EnrollmentModel.getDetailedByStudent(studentId);
     }
 
     res.json({
@@ -199,10 +157,7 @@ export const getEnrollments = async (req, res) => {
     });
   } catch (error) {
     console.error("Get enrollments error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi máy chủ, vui lòng thử lại sau",
-    });
+    res.status(500).json({ success: false, message: "Lỗi máy chủ" });
   }
 };
 
@@ -214,34 +169,25 @@ export const enrollCourse = async (req, res) => {
     const { class_id, subject_id, semester_id } = req.body;
 
     if (!studentId) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy thông tin sinh viên",
-      });
+      return res.status(404).json({ success: false, message: "Không tìm thấy thông tin sinh viên" });
     }
 
-    // Validation
-    if (!class_id || !subject_id || !semester_id) {
+    const currentCount = await EnrollmentModel.countByClass(class_id, subject_id, semester_id);
+
+    const MAX_SLOTS = 50;
+    if (currentCount >= MAX_SLOTS) {
       return res.status(400).json({
         success: false,
-        message: "Vui lòng điền đầy đủ thông tin (class_id, subject_id, semester_id)",
+        message: "Lớp học đã đầy, không thể đăng ký thêm.",
       });
     }
 
-    // Kiểm tra xem đã đăng ký chưa
-    const existing = await EnrollmentModel.getByStudent(studentId, semester_id);
-    const alreadyEnrolled = existing.some(
-      (e) => e.subject_id === subject_id && e.semester_id === semester_id
+    const enrollment = await EnrollmentModel.create(
+      studentId,
+      class_id,
+      subject_id,
+      semester_id
     );
-
-    if (alreadyEnrolled) {
-      return res.status(400).json({
-        success: false,
-        message: "Bạn đã đăng ký môn học này trong học kỳ này",
-      });
-    }
-
-    const enrollment = await EnrollmentModel.create(studentId, class_id, subject_id, semester_id);
 
     res.status(201).json({
       success: true,
@@ -250,9 +196,17 @@ export const enrollCourse = async (req, res) => {
     });
   } catch (error) {
     console.error("Enroll course error:", error);
+
+    if (error.message.includes("Duplicate entry") || error.code === "ER_DUP_ENTRY") {
+      return res.status(400).json({
+        success: false,
+        message: "Bạn đã đăng ký môn học này trong học kỳ này rồi.",
+      });
+    }
+
     res.status(400).json({
       success: false,
-      message: error.message || "Đăng ký môn học thất bại",
+      message: error.message || "Đăng ký thất bại",
     });
   }
 };
@@ -271,7 +225,6 @@ export const cancelEnrollment = async (req, res) => {
       });
     }
 
-    // Kiểm tra xem enrollment có thuộc về student này không
     const enrollment = await EnrollmentModel.getById(id);
     if (!enrollment || enrollment.student_id !== studentId) {
       return res.status(403).json({
@@ -307,34 +260,34 @@ export const getSchedule = async (req, res) => {
     const { semester_id } = req.query;
 
     if (!studentId) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy thông tin sinh viên",
-      });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy thông tin sinh viên",
+        });
     }
 
-    // Lấy class_id của student
     const student = await StudentModel.getById(studentId);
     if (!student || !student.class_id) {
-      return res.status(404).json({
-        success: false,
-        message: "Sinh viên chưa được phân vào lớp",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Sinh viên chưa được phân lớp" });
     }
 
-    // Lấy semester_id hiện tại nếu không có
+    // Logic: Tìm học kỳ active
     let activeSemesterId = semester_id;
+
     if (!activeSemesterId) {
-      const query = "SELECT id FROM Semesters WHERE is_active = TRUE LIMIT 1";
-      const [rows] = await pool.execute(query);
-      activeSemesterId = rows[0]?.id;
+      // Thay thế câu query SQL SELECT id FROM Semesters... bằng gọi Model
+      const activeSem = await SemesterModel.getActive();
+      activeSemesterId = activeSem?.id;
     }
 
     if (!activeSemesterId) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy học kỳ",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy học kỳ hiện tại" });
     }
 
     const schedule = await ScheduleModel.getByClassAndSemester(
@@ -353,10 +306,7 @@ export const getSchedule = async (req, res) => {
     });
   } catch (error) {
     console.error("Get schedule error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi máy chủ, vui lòng thử lại sau",
-    });
+    res.status(500).json({ success: false, message: "Lỗi máy chủ" });
   }
 };
 
@@ -384,4 +334,3 @@ export const getNotifications = async (req, res) => {
     });
   }
 };
-

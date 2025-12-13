@@ -10,7 +10,7 @@ import {
   validateRegister,
   validateForgot,
   validateReset,
-} from "../middlewares/validation.js";
+} from "../middlewares/authValidation.js";
 
 const router = express.Router();
 

@@ -101,6 +101,67 @@ const deleteById = async (id) => {
   return { message: "Schedule deleted" };
 };
 
+const getAvailableClasses = async (filters = {}) => {
+  const { keyword, semester_id } = filters;
+  const params = [];
+  const conditions = [];
+
+  let query = `
+    SELECT 
+      sch.class_id, sch.subject_id, sch.semester_id,
+      c.class_code, c.class_name, c.course,
+      sub.subject_name, sub.subject_code, sub.credits,
+      sem.semester_name, sem.year,
+      -- SỬA Ở ĐÂY: Gộp tên giảng viên lại, loại bỏ trùng lặp và null
+      GROUP_CONCAT(DISTINCT t.full_name SEPARATOR ', ') AS teacher_name,
+      
+      (SELECT COUNT(*) FROM Enrollments e 
+       WHERE e.class_id = sch.class_id 
+       AND e.subject_id = sch.subject_id 
+       AND e.semester_id = sch.semester_id) AS current_slots,
+       50 AS max_slots 
+    FROM Schedules sch
+    JOIN Classes c ON sch.class_id = c.id
+    JOIN Subjects sub ON sch.subject_id = sub.id
+    JOIN Semesters sem ON sch.semester_id = sem.id
+    LEFT JOIN Teachers t ON sch.teacher_id = t.id
+  `;
+
+  if (semester_id) {
+    conditions.push("sch.semester_id = ?");
+    params.push(semester_id);
+  }
+
+  if (keyword) {
+    conditions.push(
+      "(sub.subject_name LIKE ? OR sub.subject_code LIKE ? OR c.class_code LIKE ?)"
+    );
+    params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+  }
+
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+
+  query += ` 
+    GROUP BY 
+      sch.class_id, sch.subject_id, sch.semester_id, 
+      c.class_code, c.class_name, c.course,
+      sub.subject_name, sub.subject_code, sub.credits,
+      sem.semester_name, sem.year
+  `;
+
+  query += ` ORDER BY sub.subject_name, c.class_code`;
+
+  const [rows] = await pool.execute(query, params);
+
+  return rows.map((row) => ({
+    ...row,
+    id: `${row.class_id}-${row.subject_id}-${row.semester_id}`,
+  }));
+};
+
 // Export tất cả (bao gồm 'create' đã defined)
 export {
   createTable,
@@ -108,6 +169,7 @@ export {
   getById,
   getAll,
   getByClassAndSemester,
+  getAvailableClasses,
   update,
   deleteById,
 };

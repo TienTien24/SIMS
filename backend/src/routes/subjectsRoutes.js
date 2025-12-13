@@ -14,7 +14,7 @@ import {
 import {
   validateCreateSubject,
   validateUpdateSubject,
-} from "../middlewares/validation.js";
+} from "../middlewares/subjectValidation.js";
 
 const router = express.Router();
 

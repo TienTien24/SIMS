@@ -9,7 +9,6 @@ export const authenticateToken = (req, res, next) => {
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    // ← Dùng từ .env
     if (err) {
       return res.status(403).json({ error: "Invalid or expired token" });
     }

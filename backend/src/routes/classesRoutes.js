@@ -11,7 +11,7 @@ import { authenticateToken, requireAdmin } from "../middlewares/auth.js";
 import {
   validateCreateClass,
   validateUpdateClass,
-} from "../middlewares/validation.js";
+} from "../middlewares/classValidation.js";
 
 const router = express.Router();
 
