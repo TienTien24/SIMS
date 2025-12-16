@@ -8,13 +8,20 @@ import { seedAll } from "../db/seed.js";
 
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 // Middleware
 app.use(helmet());
+const allowedOrigins = [
+  process.env.FE_URL || "http://localhost:5173",
+  "http://localhost:5174",
+];
 app.use(
   cors({
-    origin: process.env.FE_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      return callback(null, allowedOrigins.includes(origin));
+    },
     credentials: true,
   })
 );
@@ -26,7 +33,7 @@ const routesModule = await import("./routes/index.js");
 app.use("/api", routesModule.default);
 
 // Error handler
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error("Server error:", err.stack);
   res.status(500).json({ error: "Internal server error!" });
 });
@@ -39,19 +46,22 @@ app.use("/:catchAll(.*)", (req, res) => {
 // Start server
 async function startServer() {
   try {
-    console.log("🔄 Checking TiDB connection...");
+    console.log("🔄 Checking DB connection...");
     const dbConnected = await testConnection();
     if (!dbConnected) {
-      console.error("❌ DB connection failed. Exiting server.");
-      process.exit(1);
+      console.warn("⚠️ DB connection failed. Starting server without DB.");
+    } else {
+      await migrateAll();
+      await seedAll();
     }
-
-    await migrateAll();
-    await seedAll();
 
     const server = app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
-      console.log(`📊 Connected to DB: ${process.env.DB_NAME} (TiDB Cloud)`);
+      if (dbConnected) {
+        console.log(`📊 Connected to DB: ${process.env.DB_NAME}`);
+      } else {
+        console.log("📄 Running in no-DB mode");
+      }
     });
 
     process.on("SIGTERM", () => {

@@ -60,6 +60,15 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
+    
+    // Xử lý lỗi database connection
+    if (error.message && (error.message.includes("Access denied") || error.message.includes("Database connection"))) {
+      return res.status(500).json({
+        success: false,
+        message: "Lỗi kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình database trong file .env",
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: "Lỗi máy chủ, vui lòng thử lại sau",
@@ -106,9 +115,27 @@ export const register = async (req, res) => {
     });
   } catch (error) {
     console.error("Registration error:", error);
+    
+    // Xử lý lỗi database connection
+    if (error.message && error.message.includes("Access denied")) {
+      return res.status(500).json({
+        success: false,
+        message: "Lỗi kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình database trong file .env",
+      });
+    }
+    
+    // Xử lý lỗi duplicate entry
+    if (error.message && error.message.includes("already exists")) {
+      return res.status(400).json({
+        success: false,
+        message: "Email hoặc username đã tồn tại. Vui lòng sử dụng thông tin khác.",
+      });
+    }
+    
+    // Xử lý các lỗi khác
     res.status(400).json({
       success: false,
-      message: error.message || "Đăng ký thất bại",
+      message: error.message || "Đăng ký thất bại. Vui lòng thử lại sau.",
     });
   }
 };
