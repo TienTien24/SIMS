@@ -6,6 +6,7 @@ import { testConnection } from "./config/db.config.js";
 import { migrateAll } from "../db/migration.js";
 import { seedAll } from "../db/seed.js";
 
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 

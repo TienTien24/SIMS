@@ -1,31 +1,40 @@
 // src/controllers/classesController.js
 import * as ClassModel from "../models/Class.js";
+import * as ScheduleModel from "../models/Schedule.js";
 
-// GET /api/classes - Lấy danh sách tất cả lớp học HOẶC Tìm kiếm
+// GET /api/classes - Lấy danh sách lớp học với tùy chọn tìm kiếm và lọc
 export const getAllClasses = async (req, res) => {
   try {
-    const keyword = req.query.q || req.query.search;
-    const course = req.query.course; 
-    
-    const hasFilters = keyword || course;
-    let classes;
+    const { q, search, semester_id, type } = req.query;
+    const keyword = q || search;
+
+    let data;
     let message;
 
-    if (hasFilters) {
-        classes = await ClassModel.search({ keyword, course });
-        message = `Tìm thấy ${classes.length} kết quả phù hợp với bộ lọc.`;
-    } else {
-        classes = await ClassModel.listAll();
-        message = "Lấy danh sách tất cả lớp học thành công";
+    if (semester_id || type === "register") {
+      data = await ScheduleModel.getAvailableClasses({
+        keyword,
+        semester_id,
+      });
+      message = `Tìm thấy ${data.length} lớp học phần đang mở.`;
+    }
+    else {
+      const course = req.query.course;
+      if (keyword || course) {
+        data = await ClassModel.search({ keyword, course });
+      } else {
+        data = await ClassModel.listAll();
+      }
+      message = "Lấy danh sách lớp học thành công";
     }
 
     res.json({
       success: true,
       message: message,
-      data: classes,
+      data: data,
     });
   } catch (error) {
-    console.error("Get all classes error:", error);
+    console.error("Get classes error:", error);
     res.status(500).json({
       success: false,
       message: "Lỗi máy chủ, vui lòng thử lại sau",

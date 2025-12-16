@@ -10,6 +10,10 @@ import {
   getSchedule,
   getNotifications,
 } from "../controllers/studentController.js";
+import {
+  validateUpdateProfile,
+  validateEnrollment,
+} from "../middlewares/studentValidation.js";
 
 const router = express.Router();
 
@@ -21,7 +25,7 @@ router.use(requireStudentOrAdmin);
  * 1. Thông tin cá nhân
  */
 router.get("/profile", getProfile);
-router.put("/profile", updateProfile);
+router.put("/profile", validateUpdateProfile, updateProfile);
 
 /**
  * 2. Điểm số và kết quả học tập
@@ -32,7 +36,7 @@ router.get("/grades", getGrades);
  * 3. Đăng ký môn học
  */
 router.get("/enrollments", getEnrollments);
-router.post("/enrollments", enrollCourse);
+router.post("/enrollments", validateEnrollment, enrollCourse);
 router.delete("/enrollments/:id", cancelEnrollment);
 
 /**

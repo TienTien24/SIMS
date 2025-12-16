@@ -70,6 +70,36 @@ const getByStudent = async (studentId, semesterId) => {
   return rows;
 };
 
+//getDetailedByStudent
+const getDetailedByStudent = async (studentId) => {
+  const query = `
+    SELECT 
+      e.*, 
+      c.class_name, 
+      sub.subject_name, sub.subject_code, sub.credits, 
+      sem.semester_name, sem.year 
+    FROM Enrollments e 
+    JOIN Classes c ON e.class_id = c.id 
+    JOIN Subjects sub ON e.subject_id = sub.id 
+    JOIN Semesters sem ON e.semester_id = sem.id 
+    WHERE e.student_id = ? 
+    ORDER BY sem.year DESC, sem.semester_name DESC, e.enrollment_date DESC
+  `;
+  const [rows] = await pool.execute(query, [studentId]);
+  return rows;
+};
+
+// Count enrollments by class, subject, semester
+const countByClass = async (classId, subjectId, semesterId) => {
+  const query = `
+    SELECT COUNT(*) as current_count 
+    FROM Enrollments 
+    WHERE class_id = ? AND subject_id = ? AND semester_id = ?
+  `;
+  const [rows] = await pool.execute(query, [classId, subjectId, semesterId]);
+  return rows[0].current_count;
+};
+
 // Update
 const update = async (id, updates) => {
   const fields = Object.keys(updates)
@@ -97,6 +127,8 @@ export {
   getById,
   getAll,
   getByStudent,
+  getDetailedByStudent,
+  countByClass,
   update,
   deleteById,
 };

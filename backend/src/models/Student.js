@@ -1,4 +1,18 @@
+// src/models/Student.js
 import { pool } from "../config/db.config.js";
+
+// Lệnh SQL cơ bản để lấy thông tin sinh viên đầy đủ (có JOIN)
+const BASE_QUERY = `
+  SELECT 
+    s.*, 
+    u.email, 
+    c.class_name, 
+    m.major_name 
+  FROM Students s 
+  JOIN Users u ON s.user_id = u.id 
+  LEFT JOIN Classes c ON s.class_id = c.id 
+  LEFT JOIN Majors m ON s.major_id = m.id
+`;
 
 // Tạo bảng Students
 const createTable = async () => {
@@ -22,7 +36,7 @@ const createTable = async () => {
   console.log("✅ Students table ready.");
 };
 
-// Create student (function 'create' đã định nghĩa)
+// Create student
 const create = async (
   userId,
   studentCode,
@@ -47,60 +61,95 @@ const create = async (
       majorId,
       course,
     ]);
-    return { id: result.insertId };
+    return await getById(result.insertId);
   } catch (error) {
-    throw new Error(`Create student failed: ${error.message}`);
+    if (error.code === "ER_DUP_ENTRY") {
+      throw new Error(`Mã sinh viên ${studentCode} hoặc User ID đã tồn tại.`);
+    }
+    throw new Error(`Tạo sinh viên thất bại: ${error.message}`);
   }
 };
 
-// Get by ID
 const getById = async (id) => {
-  const query = `SELECT s.*, u.email, c.class_name, m.major_name FROM Students s 
-    JOIN Users u ON s.user_id = u.id 
-    LEFT JOIN Classes c ON s.class_id = c.id 
-    LEFT JOIN Majors m ON s.major_id = m.id 
-    WHERE s.id = ?`;
+  const query = `${BASE_QUERY} WHERE s.id = ?`;
   const [rows] = await pool.execute(query, [id]);
   return rows[0];
 };
 
-// Get all
-const getAll = async () => {
-  const query = `SELECT s.*, u.email, c.class_name, m.major_name FROM Students s 
-    JOIN Users u ON s.user_id = u.id 
-    LEFT JOIN Classes c ON s.class_id = c.id 
-    LEFT JOIN Majors m ON s.major_id = m.id 
-    ORDER BY s.full_name`;
-  const [rows] = await pool.execute(query);
+const getByStudentCode = async (studentCode) => {
+  const query = `${BASE_QUERY} WHERE s.student_code = ?`;
+  const [rows] = await pool.execute(query, [studentCode]);
+  return rows[0];
+};
+
+/**
+ * Tìm kiếm hoặc lấy tất cả sinh viên
+ * @param {object} filters - Chứa { keyword, classId, majorId }
+ */
+const search = async (filters = {}) => {
+  const { keyword, classId, majorId } = filters;
+
+  let query = BASE_QUERY;
+  const params = [];
+  const conditions = [];
+
+  if (keyword) {
+    conditions.push("(s.full_name LIKE ? OR s.student_code LIKE ?)");
+    params.push(`%${keyword}%`, `%${keyword}%`);
+  }
+
+  if (classId) {
+    conditions.push("s.class_id = ?");
+    params.push(classId);
+  }
+
+  if (majorId) {
+    conditions.push("s.major_id = ?");
+    params.push(majorId);
+  }
+
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  query += ` ORDER BY s.full_name`;
+
+  const [rows] = await pool.execute(query, params);
   return rows;
 };
 
-// Get by class
+
 const getByClass = async (classId) => {
-  const query = `SELECT s.* FROM Students s WHERE s.class_id = ?`;
-  const [rows] = await pool.execute(query, [classId]);
-  return rows;
+  return search({ classId });
 };
 
-// Update
 const update = async (id, updates) => {
   const fields = Object.keys(updates)
     .map((key) => `${key} = ?`)
     .join(", ");
   const values = [...Object.values(updates), id];
   const query = `UPDATE Students SET ${fields} WHERE id = ?`;
+
   const [result] = await pool.execute(query, values);
-  if (result.affectedRows === 0) throw new Error("Student not found");
+  if (result.affectedRows === 0) return null;
   return await getById(id);
 };
 
-// Delete
 const deleteById = async (id) => {
   const query = "DELETE FROM Students WHERE id = ?";
   const [result] = await pool.execute(query, [id]);
-  if (result.affectedRows === 0) throw new Error("Student not found");
-  return { message: "Student deleted" };
+  if (result.affectedRows === 0)
+    throw new Error("Không tìm thấy sinh viên để xóa.");
+  return { message: "Student deleted", id };
 };
 
-// Export tất cả (bao gồm 'create' đã defined)
-export { createTable, create, getById, getAll, getByClass, update, deleteById };
+export {
+  createTable,
+  create,
+  getById,
+  getByStudentCode,
+  search,
+  getByClass,
+  update,
+  deleteById,
+};
