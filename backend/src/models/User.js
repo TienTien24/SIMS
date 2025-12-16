@@ -58,8 +58,8 @@ const createWithRole = async (username, password, email, full_name, role) => {
 
     // Insert Users
     const [userResult] = await connection.execute(
-      "INSERT INTO Users (username, password, email, role) VALUES (?, ?, ?, ?)",
-      [username, hashedPassword, email, role]
+      "INSERT INTO Users (username, password, email, role, full_name) VALUES (?, ?, ?, ?, ?)",
+      [username, hashedPassword, email, role, full_name]
     );
     const userId = userResult.insertId;
 
