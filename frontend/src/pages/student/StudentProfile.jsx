@@ -83,6 +83,18 @@ const StudentProfile = () => {
     return `${year}-${month}-${day}`;
   };
 
+  const toISO = (val) => {
+    if (!val) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val; // already ISO
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+      const [d,m,y] = val.split("/");
+      return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+    }
+    const dt = new Date(val);
+    if (!isNaN(dt.getTime())) return dt.toISOString().slice(0,10);
+    return "";
+  };
+
   useEffect(() => {
     isMounted.current = true;
     const fetchProfile = async () => {

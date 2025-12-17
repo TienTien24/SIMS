@@ -1,6 +1,7 @@
 import { pool } from "../config/db.config.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/jwt.js";
 
 // Tạo bảng Users
 const createTable = async () => {
@@ -50,8 +51,9 @@ const createWithRole = async (username, password, email, full_name, role) => {
     .update(password)
     .digest("hex");
 
+  let connection;
   try {
-    const connection = await pool.getConnection();
+    connection = await pool.getConnection();
     await connection.beginTransaction();
 
     // Insert Users
@@ -90,9 +92,25 @@ const createWithRole = async (username, password, email, full_name, role) => {
     };
     return newUser;
   } catch (error) {
+    // Rollback transaction if connection exists
+    if (connection) {
+      try {
+        await connection.rollback();
+        connection.release();
+      } catch (rollbackError) {
+        console.error("Rollback error:", rollbackError);
+      }
+    }
+    
     if (error.code === "ER_DUP_ENTRY") {
       throw new Error("Username or email already exists");
     }
+    
+    // Xử lý lỗi database connection
+    if (error.message && error.message.includes("Access denied")) {
+      throw new Error("Database connection failed: Access denied. Please check your database credentials in .env file");
+    }
+    
     throw new Error(`Registration failed: ${error.message}`);
   }
 };
@@ -137,7 +155,7 @@ const deleteById = async (id) => {
 const getByEmail = async (email) => {
   try {
     const [rows] = await pool.execute(
-      "SELECT * FROM users WHERE email = ? LIMIT 1",
+      "SELECT * FROM Users WHERE email = ? LIMIT 1",
       [email]
     );
     return rows[0] || null;
@@ -156,11 +174,11 @@ const verifyPassword = async (password, hashedPassword) => {
   return hashedInput === hashedPassword;
 };
 
-// Generate JWT token (dùng JWT_SECRET từ .env)
+// Generate JWT token (dùng JWT_SECRET từ config)
 const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, email: user.email, role: user.role },
-    process.env.JWT_SECRET,
+    JWT_SECRET,
     { expiresIn: "7d" }
   );
 };
@@ -175,7 +193,7 @@ const requestPasswordReset = async (email) => {
   // Tạo reset token (short-lived)
   const resetToken = jwt.sign(
     { email: user.email, type: "reset" },
-    process.env.JWT_SECRET,
+    JWT_SECRET,
     { expiresIn: "15m" } // 15 phút
   );
 
@@ -193,7 +211,7 @@ const requestPasswordReset = async (email) => {
 // Verify reset token (dùng JWT_SECRET)
 const verifyResetToken = async (token) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // ← Dùng từ .env
+    const decoded = jwt.verify(token, JWT_SECRET);
     if (decoded.type !== "reset") {
       throw new Error("Invalid token type");
     }

@@ -1,5 +1,16 @@
 import express from "express";
 import { authenticateToken, requireTeacherOrAdmin } from "../middlewares/auth.js";
+import {
+  getProfile,
+  updateProfile,
+  getSchedule,
+  getClasses,
+  createClass,
+  bulkEnterGrades,
+  exportGradesReport,
+  sendNotification,
+  listNotifications,
+} from "../controllers/teacherController.js";
 
 const router = express.Router();
 
@@ -8,52 +19,21 @@ router.use(authenticateToken);
 router.use(requireTeacherOrAdmin);
 
 // Lấy thông tin profile của giảng viên
-router.get("/profile", (req, res) => {
-  res.json({
-    success: true,
-    message: "Teacher profile endpoint",
-    data: {
-      user: req.user,
-      note: "Chỉ giảng viên và admin mới truy cập được endpoint này",
-    },
-  });
-});
+router.get("/profile", getProfile);
+router.put("/profile", updateProfile);
 
 // Xem danh sách lớp học của giảng viên
-router.get("/classes", (req, res) => {
-  res.json({
-    success: true,
-    message: "Teacher classes endpoint",
-    data: {
-      classes: [],
-      note: "Danh sách lớp học của giảng viên",
-    },
-  });
-});
+router.get("/classes", getClasses);
+router.post("/classes", createClass);
 
 // Nhập điểm cho sinh viên
-router.post("/grades", (req, res) => {
-  res.json({
-    success: true,
-    message: "Enter grades endpoint",
-    data: {
-      note: "Nhập điểm cho sinh viên",
-    },
-  });
-});
+router.post("/grades/bulk", bulkEnterGrades);
+router.get("/reports/grades", exportGradesReport);
 
 // Xem danh sách sinh viên trong lớp
-router.get("/classes/:classId/students", (req, res) => {
-  res.json({
-    success: true,
-    message: "Class students endpoint",
-    data: {
-      classId: req.params.classId,
-      students: [],
-      note: "Danh sách sinh viên trong lớp",
-    },
-  });
-});
+router.get("/schedule", getSchedule);
+router.post("/notifications", sendNotification);
+router.get("/notifications", listNotifications);
 
 export default router;
 

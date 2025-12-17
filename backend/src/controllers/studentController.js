@@ -41,6 +41,10 @@ export const updateProfile = async (req, res) => {
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) updates[field] = req.body[field];
     }
+    if (updates.birth_date && /^\d{2}\/\d{2}\/\d{4}$/.test(updates.birth_date)) {
+      const [d, m, y] = updates.birth_date.split("/");
+      updates.birth_date = `${y}-${m}-${d}`;
+    }
 
     const updatedStudent = await StudentModel.update(studentId, updates);
     res.json({
@@ -291,6 +295,55 @@ export const getSchedule = async (req, res) => {
       studentId,
       targetSemesterId
     );
+
+    // Tính toán tuần nếu có yêu cầu
+    let weekInfo = null;
+    if (week) {
+      const [semRows] = await pool.execute(
+        "SELECT start_date, end_date FROM Semesters WHERE id = ?",
+        [activeSemesterId]
+      );
+      const sem = semRows[0];
+      if (sem?.start_date) {
+        const start = new Date(sem.start_date);
+        const weekIdx = parseInt(week, 10) - 1;
+        const weekStart = new Date(start);
+        weekStart.setDate(start.getDate() + weekIdx * 7);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        weekInfo = {
+          week_start: weekStart.toISOString().slice(0, 10),
+          week_end: weekEnd.toISOString().slice(0, 10),
+        };
+      }
+    }
+
+    // Chế độ xem theo tuần hoặc theo học phần
+    let payload = rows;
+    if (view === "course") {
+      const map = new Map();
+      rows.forEach((r) => {
+        const key = r.subject_id;
+        const cur = map.get(key) || {
+          subject_id: r.subject_id,
+          subject_code: r.subject_code,
+          subject_name: r.subject_name,
+          class_code: r.class_code,
+          class_name: r.class_name,
+          teacher_name: r.teacher_name,
+          periods: 0,
+        };
+        // Ước lượng số tiết từ field 'period' nếu là phạm vi "1-3"
+        let count = 1;
+        if (typeof r.period === "string") {
+          const m = r.period.match(/(\d+)-(\d+)/);
+          if (m) count = Math.abs(parseInt(m[2]) - parseInt(m[1])) + 1;
+        }
+        cur.periods += count;
+        map.set(key, cur);
+      });
+      payload = Array.from(map.values());
+    }
 
     res.json({
       success: true,
