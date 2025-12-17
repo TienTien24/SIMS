@@ -62,9 +62,9 @@ const seedQueries = [
 
   // Bước 9: Schedules
   `INSERT INTO Schedules (class_id, subject_id, day_of_week, period, room, teacher_id, semester_id) VALUES 
-    (1, 1, 'Monday', '1-3', 'A101', 1, 1),
-    (2, 2, 'Wednesday', '4-6', 'B202', 2, 1),
-    (3, 3, 'Friday', '1-4', 'C303', NULL, 1)
+    (1, 1, 'Monday', '1-3', 'A101', 1, 1),    -- Môn 1 ở HK1 
+    (2, 2, 'Wednesday', '4-6', 'B202', 2, 2), -- Môn 2 ở HK2 
+    (3, 3, 'Friday', '1-4', 'C303', NULL, 1)  -- Môn 3 ở HK1
   ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);`,
 
   // Bước 10: Grades

@@ -30,9 +30,13 @@ export const validateUpdateProfile = (req, res, next) => {
 // Validation cho POST /api/student/enrollments
 export const validateEnrollment = (req, res, next) => {
   const schema = Joi.object({
-    class_id: Joi.number().integer().positive().required(),
-    subject_id: Joi.number().integer().positive().required(),
-    semester_id: Joi.number().integer().positive().required(),
+    // Bắt buộc phải có class_id
+    class_id: Joi.number().integer().positive().required().messages({
+      "any.required": "Mã lớp học phần (class_id) là bắt buộc.",
+    }),
+    
+    subject_id: Joi.number().integer().positive().optional(),
+    semester_id: Joi.number().integer().positive().optional(),
   });
 
   const { error } = schema.validate(req.body);

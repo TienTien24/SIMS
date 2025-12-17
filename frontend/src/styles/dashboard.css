@@ -958,3 +958,92 @@
     justify-content: space-between;
   }
 }
+
+/* Wrapper cho bảng kiểu QNU */
+.qnu-schedule-wrapper {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header bộ lọc */
+.qnu-filter-bar {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.qnu-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.qnu-select {
+  padding: 6px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  outline: none;
+  font-size: 14px;
+  min-width: 150px;
+}
+
+/* Bảng chính */
+.qnu-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: #333;
+}
+
+.qnu-table thead th {
+  background-color: #e2e8f0; /* Màu xám nhạt giống ảnh */
+  color: #1e293b;
+  font-weight: 700;
+  padding: 10px 8px;
+  border: 1px solid #cbd5e1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.qnu-table tbody td {
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  vertical-align: top; /* Căn trên cùng */
+  line-height: 1.5;
+}
+
+.qnu-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Các cột đặc biệt */
+.col-center { text-align: center; }
+.col-bold { font-weight: 600; color: #0f172a; }
+
+/* Phần Thông tin lịch học (được gom nhóm) */
+.schedule-lines {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.schedule-line {
+  margin-bottom: 6px;
+  border-bottom: 1px dashed #e2e8f0;
+  padding-bottom: 4px;
+}
+
+.schedule-line:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+/* Text highlight */
+.hl-room { color: #d97706; font-weight: 600; } /* Màu cam cho phòng */
+.hl-day { font-weight: 600; }

@@ -15,7 +15,9 @@ const createTable = async () => {
     FOREIGN KEY (class_id) REFERENCES Classes(id) ON DELETE CASCADE,
     FOREIGN KEY (subject_id) REFERENCES Subjects(id) ON DELETE CASCADE,
     FOREIGN KEY (teacher_id) REFERENCES Teachers(id) ON DELETE SET NULL,
-    FOREIGN KEY (semester_id) REFERENCES Semesters(id) ON DELETE CASCADE
+    FOREIGN KEY (semester_id) REFERENCES Semesters(id) ON DELETE CASCADE,
+
+    UNIQUE KEY unique_schedule_slot (class_id, subject_id, semester_id, day_of_week, period)
   ) ENGINE=InnoDB;`;
   await pool.execute(query);
   console.log("✅ Schedules table ready.");
@@ -106,32 +108,45 @@ const getAvailableClasses = async (filters = {}) => {
   const params = [];
   const conditions = [];
 
+  // Câu query này Join các bảng để lấy tên môn, tên lớp, tên giảng viên
   let query = `
     SELECT 
-      sch.class_id, sch.subject_id, sch.semester_id,
-      c.class_code, c.class_name, c.course,
-      sub.subject_name, sub.subject_code, sub.credits,
-      sem.semester_name, sem.year,
-      -- SỬA Ở ĐÂY: Gộp tên giảng viên lại, loại bỏ trùng lặp và null
-      GROUP_CONCAT(DISTINCT t.full_name SEPARATOR ', ') AS teacher_name,
+      sch.class_id, 
+      sch.subject_id, 
+      sch.semester_id,
+      sch.day_of_week,
+      sch.period,
+      sch.room,
+      c.class_code, 
+      c.class_name, 
+      sub.subject_name, 
+      sub.subject_code, 
+      sub.credits,
+      sem.semester_name, 
+      sem.year,
+      t.full_name AS teacher_name,
       
+      -- Tính số lượng sinh viên đã đăng ký vào lớp này
       (SELECT COUNT(*) FROM Enrollments e 
        WHERE e.class_id = sch.class_id 
        AND e.subject_id = sch.subject_id 
        AND e.semester_id = sch.semester_id) AS current_slots,
-       50 AS max_slots 
+       
+      -- Giả định Max slots là 50 (hoặc lấy từ bảng Classes nếu có cột max_slots)
+      50 AS max_slots 
+
     FROM Schedules sch
     JOIN Classes c ON sch.class_id = c.id
     JOIN Subjects sub ON sch.subject_id = sub.id
     JOIN Semesters sem ON sch.semester_id = sem.id
     LEFT JOIN Teachers t ON sch.teacher_id = t.id
   `;
-
+  // Bộ lọc theo kỳ học
   if (semester_id) {
     conditions.push("sch.semester_id = ?");
     params.push(semester_id);
   }
-
+  
   if (keyword) {
     conditions.push(
       "(sub.subject_name LIKE ? OR sub.subject_code LIKE ? OR c.class_code LIKE ?)"
@@ -143,24 +158,56 @@ const getAvailableClasses = async (filters = {}) => {
     query += " WHERE " + conditions.join(" AND ");
   }
 
-
-  query += ` 
-    GROUP BY 
-      sch.class_id, sch.subject_id, sch.semester_id, 
-      c.class_code, c.class_name, c.course,
-      sub.subject_name, sub.subject_code, sub.credits,
-      sem.semester_name, sem.year
-  `;
-
-  query += ` ORDER BY sub.subject_name, c.class_code`;
+  query += ` ORDER BY sub.subject_name ASC, c.class_code ASC`;
 
   const [rows] = await pool.execute(query, params);
 
   return rows.map((row) => ({
     ...row,
-    id: `${row.class_id}-${row.subject_id}-${row.semester_id}`,
+    unique_id: `${row.class_id}-${row.subject_id}-${row.semester_id}`,
   }));
 };
+
+const getStudentPersonalSchedule = async (studentId, semesterId) => {
+  const query = `
+    SELECT 
+      MIN(sch.id) as id,
+      sch.day_of_week,
+      sch.period,
+      sch.room,
+      sub.subject_name,
+      sub.subject_code,
+      sub.credits,
+      c.class_code,
+      MAX(t.full_name) AS teacher_name
+    FROM Enrollments e
+    JOIN Schedules sch ON e.class_id = sch.class_id 
+        AND e.subject_id = sch.subject_id 
+    JOIN Subjects sub ON sch.subject_id = sub.id
+    JOIN Classes c ON sch.class_id = c.id
+    LEFT JOIN Teachers t ON sch.teacher_id = t.id
+    WHERE e.student_id = ? AND e.semester_id = ?
+    GROUP BY 
+      sch.day_of_week, sch.period, sch.room, 
+      sub.subject_name, sub.subject_code, sub.credits, 
+      c.class_code
+    ORDER BY 
+      CASE 
+        WHEN sch.day_of_week = 'Monday' THEN 1
+        WHEN sch.day_of_week = 'Tuesday' THEN 2
+        WHEN sch.day_of_week = 'Wednesday' THEN 3
+        WHEN sch.day_of_week = 'Thursday' THEN 4
+        WHEN sch.day_of_week = 'Friday' THEN 5
+        WHEN sch.day_of_week = 'Saturday' THEN 6
+        WHEN sch.day_of_week = 'Sunday' THEN 7
+      END,
+      sch.period
+  `;
+
+  const [rows] = await pool.execute(query, [studentId, semesterId]);
+  return rows;
+};
+ 
 
 // Export tất cả (bao gồm 'create' đã defined)
 export {
@@ -170,6 +217,7 @@ export {
   getAll,
   getByClassAndSemester,
   getAvailableClasses,
+  getStudentPersonalSchedule,
   update,
-  deleteById,
+  deleteById, 
 };

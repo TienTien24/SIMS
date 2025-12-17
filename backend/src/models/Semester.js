@@ -2,17 +2,20 @@ import { pool } from "../config/db.config.js";
 
 // Tạo bảng Semesters
 const createTable = async () => {
-  const query = `CREATE TABLE IF NOT EXISTS Semesters (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    semester_name VARCHAR(20) NOT NULL,
-    year INT NOT NULL,
-    start_date DATE,
-    end_date DATE,
-    is_active BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  ) ENGINE=InnoDB;`;
+  const query = `
+    CREATE TABLE IF NOT EXISTS Semesters (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      semester_name VARCHAR(50) NOT NULL,
+      year INT NOT NULL,
+      start_date DATE,
+      end_date DATE,
+      is_active BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      -- Thêm dòng này:
+      UNIQUE KEY unique_sem_year (semester_name, year) 
+    ) ENGINE=InnoDB;
+  `;
   await pool.execute(query);
-  console.log("✅ Semesters table ready.");
 };
 
 // Create semester (function 'create' đã định nghĩa)
@@ -38,6 +41,7 @@ const create = async (
     throw new Error(`Create semester failed: ${error.message}`);
   }
 };
+
 
 // Get by ID
 const getById = async (id) => {
@@ -80,5 +84,24 @@ const deleteById = async (id) => {
   return { message: "Semester deleted" };
 };
 
-// Export tất cả (bao gồm 'create' đã defined)
-export { createTable, create, getById, getAll, getActive, update, deleteById };
+const getCurrentByDate = async () => {
+  const query = `
+    SELECT * FROM Semesters 
+    WHERE CURDATE() BETWEEN start_date AND end_date 
+    LIMIT 1
+  `;
+  const [rows] = await pool.execute(query);
+  return rows[0];
+};
+
+export {
+  createTable,
+  create,
+  getById,
+  getAll,
+  getActive,
+  update,
+  deleteById,
+  getCurrentByDate,
+};
+
