@@ -6,6 +6,7 @@ import {
   getSchedule,
   getClasses,
   createClass,
+  registerSchedule,
   bulkEnterGrades,
   exportGradesReport,
   sendNotification,
@@ -25,6 +26,9 @@ router.put("/profile", updateProfile);
 // Xem danh sách lớp học của giảng viên
 router.get("/classes", getClasses);
 router.post("/classes", createClass);
+
+// Đăng ký lịch dạy
+router.post("/schedule", registerSchedule);
 
 // Nhập điểm cho sinh viên
 router.post("/grades/bulk", bulkEnterGrades);

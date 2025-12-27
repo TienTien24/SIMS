@@ -2,10 +2,10 @@
 import * as StudentModel from "../models/Student.js";
 import * as GradeModel from "../models/Grade.js";
 import * as EnrollmentModel from "../models/Enrollment.js";
-import * as ScheduleModel from "../models/Schedule.js";
 import * as SemesterModel from "../models/Semester.js";
 import { getStudentIdByUserId } from "../utils/studentUtils.js";
 import { calculateGPA } from "../utils/studentCalculations.js";
+import { pool } from "../config/db.config.js";
 /**
  * 1. Xem và cập nhật thông tin cá nhân
  */
@@ -89,8 +89,14 @@ export const updateProfile = async (req, res) => {
 // GET /api/student/grades - Lấy điểm số (có thể filter theo semester)
 export const getGrades = async (req, res) => {
   try {
-    const studentId = await checkStudentId(req, res);
-    if (!studentId) return; // Đã gửi response 404
+    const userId = req.user.id;
+    const studentId = await getStudentIdByUserId(userId);
+    if (!studentId) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy thông tin sinh viên",
+      });
+    }
 
     const { semester_id } = req.query;
     let grades;
@@ -261,7 +267,7 @@ export const getSchedule = async (req, res) => {
   try {
     const userId = req.user.id;
     const studentId = await getStudentIdByUserId(userId);
-    const { semester_id, year, semester_name, week, view } = req.query;
+    const { semester_id, week, view } = req.query;
 
     if (!studentId) {
       return res

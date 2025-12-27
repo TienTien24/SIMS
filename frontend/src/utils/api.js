@@ -369,16 +369,10 @@ export const apiCallJson = async (endpoint, options = {}) => {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: "Unknown error" }));
       const msg = error.message || error.error || "API call failed";
-      if (endpoint === "/auth/login") {
-        return await mock(endpoint, options);
-      }
       throw new Error(msg);
     }
     return await response.json();
   } catch (e) {
-    if (endpoint === "/auth/login") {
-      return await mock(endpoint, options);
-    }
     throw e;
   }
 };

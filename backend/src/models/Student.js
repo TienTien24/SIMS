@@ -123,6 +123,13 @@ const getByClass = async (classId) => {
   return search({ classId });
 };
 
+// Lấy tất cả sinh viên (phục vụ Admin)
+const getAll = async () => {
+  const query = `${BASE_QUERY} ORDER BY s.full_name`;
+  const [rows] = await pool.execute(query);
+  return rows;
+};
+
 const update = async (id, updates) => {
   const fields = Object.keys(updates)
     .map((key) => `${key} = ?`)
@@ -150,6 +157,7 @@ export {
   getByStudentCode,
   search,
   getByClass,
+  getAll,
   update,
   deleteById,
 };

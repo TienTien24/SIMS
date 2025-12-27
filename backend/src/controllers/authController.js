@@ -8,6 +8,7 @@ import {
   verifyResetToken,
   resetPassword as resetPasswordModel,
 } from "../models/User.js";
+import { pool } from "../config/db.config.js";
 
 
 export const login = async (req, res) => {
@@ -43,7 +44,19 @@ export const login = async (req, res) => {
     // 4. Tạo token
     const token = generateToken(user);
 
-    // 5. Trả về chuẩn REST
+    // 5. Get additional user info based on role
+    let additionalInfo = {};
+    
+    if (user.role === 'student' || user.role === 'teacher') {
+      const table = user.role === 'student' ? 'Students' : 'Teachers';
+      const [rows] = await pool.execute(
+        `SELECT * FROM ${table} WHERE user_id = ?`,
+        [user.id]
+      );
+      additionalInfo = rows[0] || {};
+    }
+
+    // 6. Trả về chuẩn REST với thông tin đầy đủ
     res.status(200).json({
       success: true,
       message: "Đăng nhập thành công",
@@ -55,6 +68,10 @@ export const login = async (req, res) => {
           email: user.email,
           role: user.role,
           fullName: user.full_name || user.fullName,
+          ...(user.role === 'student' || user.role === 'teacher' ? {
+            code: additionalInfo[`${user.role}_code`],
+            additionalInfo: additionalInfo
+          } : {})
         },
       },
     });
