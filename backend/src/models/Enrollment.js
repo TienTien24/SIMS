@@ -83,7 +83,9 @@ const getDetailedByStudent = async (studentId) => {
     JOIN Subjects sub ON e.subject_id = sub.id 
     JOIN Semesters sem ON e.semester_id = sem.id 
     WHERE e.student_id = ? 
-    ORDER BY sem.year DESC, sem.semester_name DESC, e.enrollment_date DESC
+    AND CURDATE() BETWEEN sem.start_date AND sem.end_date
+    AND sem.is_active = 1
+    ORDER BY e.enrollment_date DESC
   `;
   const [rows] = await pool.execute(query, [studentId]);
   return rows;
@@ -120,6 +122,13 @@ const deleteById = async (id) => {
   return { message: "Enrollment deleted" };
 };
 
+const checkEnrollment = async (studentId, classId) => {
+  const query =
+    "SELECT * FROM Enrollments WHERE student_id = ? AND class_id = ?";
+  const [rows] = await pool.execute(query, [studentId, classId]);
+  return rows[0];
+};
+
 // Export (bao gồm createTable)
 export {
   createTable,
@@ -131,4 +140,5 @@ export {
   countByClass,
   update,
   deleteById,
+  checkEnrollment,
 };

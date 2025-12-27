@@ -95,7 +95,37 @@ const deleteById = async (id) => {
   return { message: "Grade deleted" };
 };
 
-// Export tất cả (bao gồm 'create' đã defined)
+export const getStudentGrades = async ({ studentId, semesterId, year }) => {
+  // 1. Câu truy vấn gốc (Base Query)
+  let query = `
+    SELECT g.*, 
+           sub.subject_name, sub.subject_code, sub.credits, 
+           sem.semester_name, sem.year 
+    FROM Grades g 
+    JOIN Subjects sub ON g.subject_id = sub.id 
+    JOIN Semesters sem ON g.semester_id = sem.id 
+    WHERE g.student_id = ?`;
+
+  const params = [studentId];
+
+  // 2. Nối chuỗi điều kiện động (Dynamic Filtering)
+  if (semesterId) {
+    query += ` AND g.semester_id = ?`;
+    params.push(semesterId);
+  } else if (year) {
+    // Nếu chỉ chọn năm (mà không chọn kỳ cụ thể)
+    query += ` AND sem.year = ?`;
+    params.push(year);
+  }
+
+  // 3. Sắp xếp mặc định
+  query += ` ORDER BY sem.year DESC, sem.semester_name DESC`;
+
+  // 4. Thực thi
+  const [rows] = await pool.execute(query, params);
+  return rows;
+};
+
 export {
   createTable,
   create,

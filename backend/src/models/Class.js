@@ -99,6 +99,17 @@ const deleteById = async (id) => {
   return { message: "Class deleted" };
 };
 
+const getCapacityInfo = async (classId) => {
+  const query = `
+    SELECT 
+      (SELECT COUNT(*) FROM Enrollments WHERE class_id = ?) AS current_count,
+      50 AS max_size 
+    FROM Classes 
+    WHERE id = ?`;
+
+  const [rows] = await pool.execute(query, [classId, classId]);
+  return rows[0];
+};
 
 export {
   createTable,
@@ -109,4 +120,5 @@ export {
   update,
   deleteById,
   getByCode,
+  getCapacityInfo,
 };
