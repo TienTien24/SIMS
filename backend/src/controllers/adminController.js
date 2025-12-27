@@ -4,11 +4,66 @@ import * as StudentModel from "../models/Student.js";
 import * as TeacherModel from "../models/Teacher.js";
 
 export const listUsers = async (req, res) => {
+  const connection = await pool.getConnection();
   try {
-    const users = await UserModel.getAll(1000, 0);
-    res.json({ success: true, message: "Lấy danh sách người dùng thành công", data: { users } });
+    // Lấy danh sách user từ bảng Users
+    const [users] = await connection.execute(
+      'SELECT id, username, email, role, full_name, status, created_at FROM Users ORDER BY created_at DESC'
+    );
+
+    // Lấy thông tin chi tiết cho từng role
+    const [students] = await connection.execute(
+      'SELECT s.*, u.email, u.full_name FROM Students s JOIN Users u ON s.user_id = u.id'
+    );
+    
+    const [teachers] = await connection.execute(
+      'SELECT t.*, u.email, u.full_name FROM Teachers t JOIN Users u ON t.user_id = u.id'
+    );
+
+    // Gộp thông tin
+    const usersWithDetails = users.map(user => {
+      if (user.role === 'student') {
+        const studentInfo = students.find(s => s.user_id === user.id);
+        return { ...user, studentInfo };
+      } else if (user.role === 'teacher') {
+        const teacherInfo = teachers.find(t => t.user_id === user.id);
+        return { ...user, teacherInfo };
+      }
+      return user;
+    });
+
+    res.json({ 
+      success: true, 
+      message: "Lấy danh sách người dùng thành công", 
+      data: { 
+        users: usersWithDetails,
+        stats: {
+          total: users.length,
+          students: students.length,
+          teachers: teachers.length,
+          admins: users.filter(u => u.role === 'admin').length
+        }
+      } 
+    });
   } catch (error) {
     console.error("Admin listUsers error:", error);
+    res.status(500).json({ success: false, message: "Lỗi máy chủ: " + error.message });
+  } finally {
+    connection.release();
+  }
+};
+
+export const listRegistrations = async (_req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT r.*, u.username 
+       FROM RegistrationLogs r 
+       JOIN Users u ON r.user_id = u.id 
+       ORDER BY r.created_at DESC`
+    );
+    res.json({ success: true, message: "Danh sách đăng ký mới", data: rows });
+  } catch (error) {
+    console.error("Admin listRegistrations error:", error);
     res.status(500).json({ success: false, message: "Lỗi máy chủ" });
   }
 };

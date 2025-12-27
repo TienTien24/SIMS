@@ -62,7 +62,7 @@ export const getSubjectById = async (req, res) => {
 // POST /api/subjects - Tạo môn học mới
 export const createSubject = async (req, res) => {
   try {
-    const { subject_code, subject_name, credits, teacher_id } = req.body;
+    const { subject_code, subject_name, credits, teacher_id = null } = req.body;
 
     // Kiểm tra tên môn học đã tồn tại
     const existingName = await SubjectModel.getByName(subject_name);

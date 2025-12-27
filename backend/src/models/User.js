@@ -10,6 +10,7 @@ const createTable = async () => {
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
+    full_name VARCHAR(100),
     role ENUM('admin', 'teacher', 'student') NOT NULL,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -17,6 +18,22 @@ const createTable = async () => {
   ) ENGINE=InnoDB;`;
   await pool.execute(query);
   console.log("✅ Users table ready.");
+};
+
+// Tạo bảng log đăng ký để admin theo dõi
+const createRegistrationLogsTable = async () => {
+  const query = `CREATE TABLE IF NOT EXISTS RegistrationLogs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    role ENUM('teacher','student') NOT NULL,
+    full_name VARCHAR(100),
+    email VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('pending','reviewed') DEFAULT 'pending',
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB;`;
+  await pool.execute(query);
+  console.log("✅ RegistrationLogs table ready.");
 };
 
 // Create user cơ bản (không role-specific)
@@ -79,6 +96,12 @@ const createWithRole = async (username, password, email, full_name, role) => {
       );
       additionalId = teacherResult.insertId;
     }
+
+    // Ghi log đăng ký để admin nhận được thông tin
+    await connection.execute(
+      "INSERT INTO RegistrationLogs (user_id, role, full_name, email) VALUES (?, ?, ?, ?)",
+      [userId, role, full_name, email]
+    );
 
     await connection.commit();
     connection.release();
@@ -254,4 +277,5 @@ export {
   requestPasswordReset,
   verifyResetToken,
   resetPassword,
+  createRegistrationLogsTable,
 };

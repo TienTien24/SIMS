@@ -2,44 +2,64 @@
 import * as StudentModel from "../models/Student.js";
 import * as GradeModel from "../models/Grade.js";
 import * as EnrollmentModel from "../models/Enrollment.js";
-import * as ScheduleModel from "../models/Schedule.js";
 import * as SemesterModel from "../models/Semester.js";
-import * as ClassModel from "../models/Class.js";
 import { getStudentIdByUserId } from "../utils/studentUtils.js";
 import { calculateGPA } from "../utils/studentCalculations.js";
-import { checkTimeOverlap, translateDay } from "../utils/scheduleUtils.js";
+import { pool } from "../config/db.config.js";
+/**
+ * 1. Xem và cập nhật thông tin cá nhân
+ */
 
-/* ==========================================================================
-   SECTION 1: QUẢN LÝ HỒ SƠ (PROFILE)
-   ========================================================================== */
+// GET /api/student/profile - Lấy thông tin cá nhân
 export const getProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     const studentId = await getStudentIdByUserId(userId);
-    if (!studentId)
-      return res
-        .status(404)
-        .json({ success: false, message: "Không tìm thấy sinh viên" });
+
+    if (!studentId) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy thông tin sinh viên",
+      });
+    }
+
     const student = await StudentModel.getById(studentId);
-    res.json({ success: true, data: student });
+
+    res.json({
+      success: true,
+      message: "Lấy thông tin cá nhân thành công",
+      data: student,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Lỗi máy chủ" });
+    console.error("Get profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ, vui lòng thử lại sau",
+    });
   }
 };
 
+// PUT /api/student/profile - Cập nhật thông tin cá nhân
 export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     const studentId = await getStudentIdByUserId(userId);
-    if (!studentId)
-      return res
-        .status(404)
-        .json({ success: false, message: "Không tìm thấy sinh viên" });
 
+    if (!studentId) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy thông tin sinh viên",
+      });
+    }
+
+    // Lấy các trường đã được validation cho phép
     const allowedFields = ["full_name", "birth_date", "gender", "address"];
     const updates = {};
+
     for (const field of allowedFields) {
-      if (req.body[field] !== undefined) updates[field] = req.body[field];
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
     }
     if (updates.birth_date && /^\d{2}\/\d{2}\/\d{4}$/.test(updates.birth_date)) {
       const [d, m, y] = updates.birth_date.split("/");
@@ -47,253 +67,248 @@ export const updateProfile = async (req, res) => {
     }
 
     const updatedStudent = await StudentModel.update(studentId, updates);
+
     res.json({
       success: true,
-      message: "Cập nhật thành công",
+      message: "Cập nhật thông tin thành công",
       data: updatedStudent,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error("Update profile error:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message || "Cập nhật thông tin thất bại",
+    });
   }
 };
 
-/* ==========================================================================
-   SECTION 2: DỮ LIỆU HỌC VỤ (SEMESTERS)
-   ========================================================================== */
-export const getAllSemesters = async (req, res) => {
-  try {
-    const semesters = await SemesterModel.getAll();
-    res.json({
-      success: true,
-      data: semesters,
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Lỗi lấy danh sách học kỳ" });
-  }
-};
+/**
+ * 2. Xem điểm các môn học, kết quả học tập theo học kỳ
+ */
 
-/* ==========================================================================
-   SECTION 3: ĐĂNG KÝ TÍN CHỈ (ENROLLMENT)
-   ========================================================================== */
-export const getAvailableClasses = async (req, res) => {
-  try {
-    const { keyword } = req.query;
-
-    const currentSemester = await SemesterModel.getCurrentByDate();
-
-    if (!currentSemester) {
-      return res.json({
-        success: true,
-        message:
-          "Hệ thống đang đóng cổng đăng ký (Không trong thời gian học kỳ).",
-        data: [],
-      });
-    }
-
-    const classes = await ScheduleModel.getAvailableClasses({
-      keyword,
-      semester_id: currentSemester.id,
-    });
-
-    res.json({
-      success: true,
-      message: `Danh sách môn mở cho ${currentSemester.semester_name} - Năm ${currentSemester.year}`,
-      data: classes,
-    });
-  } catch (error) {
-    console.error("Get available classes error:", error);
-    res.status(500).json({ success: false, message: "Lỗi máy chủ" });
-  }
-};
-
-export const enrollCourse = async (req, res) => {
+// GET /api/student/grades - Lấy điểm số (có thể filter theo semester)
+export const getGrades = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { class_id } = req.body;
-
     const studentId = await getStudentIdByUserId(userId);
-    if (!studentId)
-      return res
-        .status(404)
-        .json({ success: false, message: "Lỗi xác thực sinh viên" });
-
-    const currentSemester = await SemesterModel.getCurrentByDate();
-    if (!currentSemester) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Cổng đăng ký đang đóng." });
-    }
-
-    const capacityInfo = await ClassModel.getCapacityInfo(class_id);
-
-    // Kiểm tra nếu lớp không tồn tại
-    if (!capacityInfo) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Lớp học không tồn tại." });
-    }
-
-    // So sánh sĩ số
-    if (capacityInfo.current_count >= capacityInfo.max_size) {
-      return res.status(400).json({
+    if (!studentId) {
+      return res.status(404).json({
         success: false,
-        message: `Lớp đã đầy (${capacityInfo.current_count}/${capacityInfo.max_size}).`,
+        message: "Không tìm thấy thông tin sinh viên",
       });
     }
 
-    const targetSchedules = await ScheduleModel.getByClassAndSemester(
-      class_id,
-      currentSemester.id
-    );
-    if (!targetSchedules || targetSchedules.length === 0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Lớp này không mở hoặc chưa có lịch học.",
-        });
+    const { semester_id } = req.query;
+    let grades;
+
+    if (semester_id) {
+      // Lấy điểm theo học kỳ cụ thể
+      grades = await GradeModel.getByStudentAndSemester(studentId, semester_id);
+    } else {
+      // Lấy tất cả điểm
+      const query = `SELECT g.*, sub.subject_name, sub.subject_code, sub.credits, sem.semester_name, sem.year 
+        FROM Grades g 
+        JOIN Subjects sub ON g.subject_id = sub.id 
+        JOIN Semesters sem ON g.semester_id = sem.id 
+        WHERE g.student_id = ? 
+        ORDER BY sem.year DESC, sem.semester_name DESC`;
+      const [rows] = await pool.execute(query, [studentId]);
+      grades = rows;
     }
 
-    const existingEnrollment = await EnrollmentModel.checkEnrollment(
-      studentId,
-      class_id
-    );
-    if (existingEnrollment) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Bạn đã đăng ký lớp này rồi." });
-    }
+    // Tính GPA (Sử dụng helper đã import)
+    const gpa = calculateGPA(grades); // 👈 SỬ DỤNG HÀM TỪ UTILS
 
-    const currentStudentSchedules =
-      await ScheduleModel.getStudentPersonalSchedule(
-        studentId,
-        currentSemester.id
-      );
-
-    for (const newSlot of targetSchedules) {
-      for (const existingSlot of currentStudentSchedules) {
-        if (newSlot.day_of_week === existingSlot.day_of_week) {
-          if (checkTimeOverlap(newSlot.period, existingSlot.period)) {
-            return res.status(400).json({
-              success: false,
-              message: `Trùng lịch! Bạn đã có môn ${existingSlot.subject_name} vào ${translateDay(existingSlot.day_of_week)} tiết ${existingSlot.period}.`,
-            });
-          }
-        }
-      }
-    }
-
-    const subjectId = targetSchedules[0].subject_id;
-    await EnrollmentModel.create(
-      studentId,
-      class_id,
-      subjectId,
-      currentSemester.id
-    );
-
-    res.status(201).json({ success: true, message: "Đăng ký thành công!" });
+    res.json({
+      success: true,
+      message: "Lấy điểm số thành công",
+      data: {
+        grades,
+        gpa: gpa,
+        totalSubjects: grades.length,
+      },
+    });
   } catch (error) {
-    console.error("Enroll error:", error);
-    res.status(500).json({ success: false, message: "Đăng ký thất bại " + error.message });
+    console.error("Get grades error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ, vui lòng thử lại sau",
+    });
   }
 };
 
+/**
+ * 3. Đăng ký môn học
+ */
+
+// GET /api/student/enrollments - Xem danh sách môn đã đăng ký
 export const getEnrollments = async (req, res) => {
   try {
     const userId = req.user.id;
     const studentId = await getStudentIdByUserId(userId);
     const { semester_id } = req.query;
 
-    if (!studentId)
-      return res
-        .status(404)
-        .json({ success: false, message: "Sinh viên không tồn tại" });
+    if (!studentId) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy thông tin sinh viên" });
+    }
 
     let enrollments;
+
     if (semester_id) {
       enrollments = await EnrollmentModel.getByStudent(studentId, semester_id);
     } else {
       enrollments = await EnrollmentModel.getDetailedByStudent(studentId);
     }
 
-    res.json({ success: true, data: enrollments });
+    res.json({
+      success: true,
+      message: "Lấy danh sách môn đã đăng ký thành công",
+      data: enrollments,
+    });
   } catch (error) {
+    console.error("Get enrollments error:", error);
     res.status(500).json({ success: false, message: "Lỗi máy chủ" });
   }
 };
 
+// POST /api/student/enrollments - Đăng ký môn học mới
+export const enrollCourse = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const studentId = await getStudentIdByUserId(userId);
+    const { class_id, subject_id, semester_id } = req.body;
+
+    if (!studentId) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy thông tin sinh viên" });
+    }
+
+    const currentCount = await EnrollmentModel.countByClass(class_id, subject_id, semester_id);
+
+    const MAX_SLOTS = 50;
+    if (currentCount >= MAX_SLOTS) {
+      return res.status(400).json({
+        success: false,
+        message: "Lớp học đã đầy, không thể đăng ký thêm.",
+      });
+    }
+
+    const enrollment = await EnrollmentModel.create(
+      studentId,
+      class_id,
+      subject_id,
+      semester_id
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Đăng ký môn học thành công",
+      data: enrollment,
+    });
+  } catch (error) {
+    console.error("Enroll course error:", error);
+
+    if (error.message.includes("Duplicate entry") || error.code === "ER_DUP_ENTRY") {
+      return res.status(400).json({
+        success: false,
+        message: "Bạn đã đăng ký môn học này trong học kỳ này rồi.",
+      });
+    }
+
+    res.status(400).json({
+      success: false,
+      message: error.message || "Đăng ký thất bại",
+    });
+  }
+};
+
+// DELETE /api/student/enrollments/:id - Hủy đăng ký môn học
 export const cancelEnrollment = async (req, res) => {
   try {
     const userId = req.user.id;
     const studentId = await getStudentIdByUserId(userId);
     const { id } = req.params;
 
-    const enrollment = await EnrollmentModel.getById(id);
-    
-    if (!enrollment || enrollment.student_id !== studentId) {
-      return res.status(403).json({ success: false, message: "Không có quyền hủy môn này" });
+    if (!studentId) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy thông tin sinh viên",
+      });
     }
 
-    const currentSemester = await SemesterModel.getCurrentByDate();
-    if (!currentSemester || enrollment.semester_id !== currentSemester.id) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Không thể hủy môn học của học kỳ đã kết thúc hoặc chưa bắt đầu." 
+    const enrollment = await EnrollmentModel.getById(id);
+    if (!enrollment || enrollment.student_id !== studentId) {
+      return res.status(403).json({
+        success: false,
+        message: "Bạn không có quyền hủy đăng ký này",
       });
     }
 
     await EnrollmentModel.deleteById(id);
-    res.json({ success: true, message: "Hủy đăng ký thành công" });
+
+    res.json({
+      success: true,
+      message: "Hủy đăng ký môn học thành công",
+    });
   } catch (error) {
-    res.status(400).json({ success: false, message: "Hủy thất bại" });
+    console.error("Cancel enrollment error:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message || "Hủy đăng ký thất bại",
+    });
   }
 };
 
-/* ==========================================================================
-   SECTION 4: THỜI KHÓA BIỂU (SCHEDULE)
-   ========================================================================== */
+/**
+ * 4. Xem lịch học và thời khóa biểu
+ */
+
+// GET /api/student/schedule - Lấy lịch học của sinh viên
 export const getSchedule = async (req, res) => {
   try {
     const userId = req.user.id;
     const studentId = await getStudentIdByUserId(userId);
+    const { semester_id, week, view } = req.query;
 
-    const { semester_id } = req.query;
-
-    if (!studentId)
+    if (!studentId) {
       return res
         .status(404)
-        .json({ success: false, message: "Sinh viên không tồn tại" });
-
-    let targetSemesterId = semester_id;
-    let semesterName = "";
-
-    if (!targetSemesterId) {
-      const currentSem = await SemesterModel.getCurrentByDate();
-
-      if (currentSem) {
-        targetSemesterId = currentSem.id;
-        semesterName = `${currentSem.semester_name} - Năm ${currentSem.year} (Hiện tại)`;
-      } else {
-
-      }
-    } else {
-      const sem = await SemesterModel.getById(targetSemesterId);
-      if (sem) semesterName = `${sem.semester_name} - Năm ${sem.year}`;
+        .json({
+          success: false,
+          message: "Không tìm thấy thông tin sinh viên",
+        });
     }
 
-    if (!targetSemesterId) {
-      return res.json({
-        success: true,
-        message: "Không xác định được học kỳ.",
-        data: { schedule: [], semester_info: null },
-      });
+    const student = await StudentModel.getById(studentId);
+    if (!student || !student.class_id) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Sinh viên chưa được phân lớp" });
     }
 
-    const schedule = await ScheduleModel.getStudentPersonalSchedule(
-      studentId,
-      targetSemesterId
+    // Logic: Tìm học kỳ active
+    let activeSemesterId = semester_id;
+
+    if (!activeSemesterId) {
+      // Thay thế câu query SQL SELECT id FROM Semesters... bằng gọi Model
+      const activeSem = await SemesterModel.getActive();
+      activeSemesterId = activeSem?.id;
+    }
+
+    if (!activeSemesterId) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy học kỳ hiện tại" });
+    }
+
+    const [rows] = await pool.execute(
+      `SELECT sch.*, c.class_name, c.class_code, sub.subject_name, sub.subject_code, t.full_name AS teacher_name 
+       FROM Schedules sch 
+       JOIN Classes c ON sch.class_id = c.id 
+       JOIN Subjects sub ON sch.subject_id = sub.id 
+       LEFT JOIN Teachers t ON sch.teacher_id = t.id 
+       WHERE sch.class_id = ? AND sch.semester_id = ? 
+       ORDER BY sch.day_of_week, sch.period`,
+      [student.class_id, activeSemesterId]
     );
 
     // Tính toán tuần nếu có yêu cầu
@@ -347,11 +362,12 @@ export const getSchedule = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Thời khóa biểu: ${semesterName}`,
+      message: "Lấy lịch học thành công",
       data: {
-        schedule,
-        semester_id: targetSemesterId,
-        semester_name: semesterName,
+        schedule: payload,
+        class_name: student.class_name,
+        semester_id: activeSemesterId,
+        ...(weekInfo || {}),
       },
     });
   } catch (error) {
@@ -360,64 +376,37 @@ export const getSchedule = async (req, res) => {
   }
 };
 
-/* ==========================================================================
-   SECTION 5: ĐIỂM SỐ (GRADES)
-   ========================================================================== */
-export const getGrades = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const studentId = await getStudentIdByUserId(userId);
-
-    if (!studentId) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Sinh viên không tồn tại" });
-    }
-
-    // Lấy tham số từ Query String
-    const { semester_id, year } = req.query;
-
-    // [GỌI MODEL] Không còn viết SQL loằng ngoằng ở đây nữa
-    const grades = await GradeModel.getStudentGrades({
-      studentId,
-      semesterId: semester_id,
-      year,
-    });
-
-    // Tính toán GPA (Logic nghiệp vụ vẫn để ở Controller hoặc Utils là hợp lý)
-    const gpa = calculateGPA(grades);
-
-    res.json({
-      success: true,
-      data: {
-        grades,
-        gpa,
-        totalSubjects: grades.length,
-      },
-    });
-  } catch (error) {
-    console.error("Get grades error:", error);
-    res.status(500).json({ success: false, message: "Lỗi máy chủ" });
-  }
-};
-
-/* ==========================================================================
-   SECTION 6: THÔNG BÁO (NOTIFICATIONS)
-   ========================================================================== */
+/**
+ * 5. Tra cứu thông báo (tạm thời trả về empty, sẽ implement sau)
+ */
 
 // GET /api/student/notifications - Lấy thông báo
 export const getNotifications = async (req, res) => {
   try {
-    res.json({
-      success: true,
-      message: "Lấy thông báo thành công",
-      data: {
-        notifications: [],
-        note: "Chức năng đang phát triển",
-      },
-    });
+    const userId = req.user.id;
+    const studentId = await getStudentIdByUserId(userId);
+    if (!studentId) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy thông tin sinh viên" });
+    }
+    const student = await StudentModel.getById(studentId);
+    const [notifRows] = await pool.execute(
+      `SELECT n.*, c.class_name, s.subject_name, t.full_name AS teacher_name 
+       FROM Notifications n 
+       LEFT JOIN Classes c ON n.class_id = c.id 
+       LEFT JOIN Subjects s ON n.subject_id = s.id 
+       LEFT JOIN Teachers t ON n.teacher_id = t.id 
+       WHERE (n.class_id IS NULL OR n.class_id = ?) 
+          OR n.subject_id IN (SELECT subject_id FROM Enrollments WHERE student_id = ?) 
+       ORDER BY n.created_at DESC LIMIT 50`,
+      [student.class_id || null, studentId]
+    );
+    res.json({ success: true, message: "Lấy thông báo thành công", data: { notifications: notifRows } });
   } catch (error) {
     console.error("Get notifications error:", error);
-    res.status(500).json({ success: false, message: "Lỗi máy chủ" });
+    res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ, vui lòng thử lại sau",
+    });
   }
 };
+

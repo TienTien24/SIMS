@@ -84,10 +84,12 @@ export const seedAll = async () => {
 
   try {
     console.log("🌱 Starting seeding...");
+    await pool.execute("SET FOREIGN_KEY_CHECKS = 0;");
     for (const [index, query] of seedQueries.entries()) {
       await pool.execute(query);
       console.log(`✅ Seeded data set ${index + 1}/${seedQueries.length}.`);
     }
+    await pool.execute("SET FOREIGN_KEY_CHECKS = 1;");
     console.log("🌱 Seeding completed!");
   } catch (error) {
     console.error("❌ Seeding failed:", error.message);

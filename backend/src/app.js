@@ -52,7 +52,11 @@ async function startServer() {
       console.warn("⚠️ DB connection failed. Starting server without DB.");
     } else {
       await migrateAll();
-      await seedAll();
+      // try {
+      //   await seedAll();
+      // } catch (seedError) {
+      //   console.warn("⚠️ Seeding failed, but continuing:", seedError.message);
+      // }
     }
 
     const server = app.listen(PORT, () => {
