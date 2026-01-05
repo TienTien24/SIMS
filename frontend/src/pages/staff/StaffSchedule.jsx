@@ -22,15 +22,18 @@ export default function StaffSchedule() {
     room: "Online"
   });
 
-  const loadSchedule = async () => {
+  // Load schedule
+  const loadSchedule = async (semesterId = null) => {
     try {
-      const r = await apiCallJson("/teacher/schedule");
+      const query = semesterId ? `?semester_id=${semesterId}` : "";
+      const r = await apiCallJson("/teacher/schedule" + query);
       setSchedule(r.data || []);
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "Lấy lịch dạy thất bại");
     }
   };
 
+  // Load dropdown lists
   const loadLists = async () => {
     try {
       const [cRes, subRes, semRes] = await Promise.all([
@@ -41,11 +44,12 @@ export default function StaffSchedule() {
       setClasses(cRes.data || []);
       setSubjects(subRes.data || []);
       setSemesters(semRes.data || []);
-      
+
       // Set default semester if active
       const activeSem = semRes.data?.find(s => s.is_active);
       if (activeSem) {
         setForm(prev => ({ ...prev, semester_id: activeSem.id }));
+        loadSchedule(activeSem.id); // Load schedule for active semester
       }
     } catch (e) {
       console.error("Failed to load lists", e);
@@ -53,10 +57,10 @@ export default function StaffSchedule() {
   };
 
   useEffect(() => {
-    loadSchedule();
     loadLists();
   }, []);
 
+  // Handle schedule registration
   const handleRegister = async () => {
     setMsg(""); setErr("");
     if (!form.class_id || !form.subject_id || !form.semester_id) {
@@ -70,10 +74,9 @@ export default function StaffSchedule() {
         body: JSON.stringify(form)
       });
       setMsg(res.message);
-      loadSchedule(); // Refresh schedule
-      // Optional: Reset form? Keep it for multiple entries?
+      loadSchedule(form.semester_id); // refresh schedule
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "Đăng ký thất bại");
     }
   };
 
@@ -82,23 +85,26 @@ export default function StaffSchedule() {
       <header className="dashboard-header">
         <h1>Thời khóa biểu giảng dạy</h1>
         <div className="user-info">
-           <button className="btn btn-secondary" onClick={() => window.history.back()}>Quay lại</button>
+          <button className="btn btn-secondary" onClick={() => window.history.back()}>Quay lại</button>
         </div>
       </header>
-      
+
       <main className="dashboard-main">
-        {(msg || err) && (<div className={`alert ${err ? "alert-error" : "alert-success"}`}>{err || msg}</div>)}
-        
+        {(msg || err) && (
+          <div className={`alert ${err ? "alert-error" : "alert-success"}`}>{err || msg}</div>
+        )}
+
+        {/* Form đăng ký lịch dạy */}
         <section className="info-card">
-          <h3>Đăng ký lịch dạy (Phân công chuyên môn)</h3>
+          <h3>Đăng ký lịch dạy</h3>
           <div className="form-stack">
             <div className="form-row three-columns">
               <div className="form-group">
                 <label className="form-label">Lớp học</label>
-                <select 
+                <select
                   className="form-control"
-                  value={form.class_id} 
-                  onChange={(e) => setForm({...form, class_id: e.target.value})}
+                  value={form.class_id}
+                  onChange={e => setForm({ ...form, class_id: e.target.value })}
                 >
                   <option value="">-- Chọn lớp --</option>
                   {classes.map(c => (
@@ -109,10 +115,10 @@ export default function StaffSchedule() {
 
               <div className="form-group">
                 <label className="form-label">Môn học</label>
-                <select 
+                <select
                   className="form-control"
-                  value={form.subject_id} 
-                  onChange={(e) => setForm({...form, subject_id: e.target.value})}
+                  value={form.subject_id}
+                  onChange={e => setForm({ ...form, subject_id: e.target.value })}
                 >
                   <option value="">-- Chọn môn --</option>
                   {subjects.map(s => (
@@ -123,10 +129,13 @@ export default function StaffSchedule() {
 
               <div className="form-group">
                 <label className="form-label">Học kỳ</label>
-                <select 
+                <select
                   className="form-control"
-                  value={form.semester_id} 
-                  onChange={(e) => setForm({...form, semester_id: e.target.value})}
+                  value={form.semester_id}
+                  onChange={e => {
+                    setForm({ ...form, semester_id: e.target.value });
+                    loadSchedule(e.target.value); // load schedule cho học kỳ mới
+                  }}
                 >
                   <option value="">-- Chọn học kỳ --</option>
                   {semesters.map(s => (
@@ -139,10 +148,10 @@ export default function StaffSchedule() {
             <div className="form-row three-columns">
               <div className="form-group">
                 <label className="form-label">Thứ</label>
-                <select 
+                <select
                   className="form-control"
-                  value={form.day_of_week} 
-                  onChange={(e) => setForm({...form, day_of_week: e.target.value})}
+                  value={form.day_of_week}
+                  onChange={e => setForm({ ...form, day_of_week: e.target.value })}
                 >
                   {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => (
                     <option key={d} value={d}>{d}</option>
@@ -152,21 +161,21 @@ export default function StaffSchedule() {
 
               <div className="form-group">
                 <label className="form-label">Tiết</label>
-                <input 
-                  className="form-control" 
-                  placeholder="VD: 1-3" 
-                  value={form.period} 
-                  onChange={(e) => setForm({...form, period: e.target.value})} 
+                <input
+                  className="form-control"
+                  placeholder="VD: 1-3"
+                  value={form.period}
+                  onChange={e => setForm({ ...form, period: e.target.value })}
                 />
               </div>
 
               <div className="form-group">
                 <label className="form-label">Phòng</label>
-                <input 
-                  className="form-control" 
-                  placeholder="VD: A101" 
-                  value={form.room} 
-                  onChange={(e) => setForm({...form, room: e.target.value})} 
+                <input
+                  className="form-control"
+                  placeholder="VD: A101"
+                  value={form.room}
+                  onChange={e => setForm({ ...form, room: e.target.value })}
                 />
               </div>
             </div>
@@ -177,6 +186,7 @@ export default function StaffSchedule() {
           </div>
         </section>
 
+        {/* Bảng hiển thị lịch dạy */}
         <section className="info-card">
           <h3>Lịch dạy đã đăng ký</h3>
           {schedule.length > 0 ? (
@@ -196,8 +206,8 @@ export default function StaffSchedule() {
                     <td>{s.day_of_week}</td>
                     <td>{s.period}</td>
                     <td>{s.room}</td>
-                    <td>{s.class_name}</td>
-                    <td>{s.subject_name}</td>
+                    <td>{s.class_name}</td>       {/* Đã join từ backend */}
+                    <td>{s.subject_name}</td>     {/* Đã join từ backend */}
                   </tr>
                 ))}
               </tbody>
