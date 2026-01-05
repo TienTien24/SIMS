@@ -14,6 +14,7 @@ import {
   updateTeacher,
   deleteTeacher,
   getStats,
+  listRegistrations,
 } from "../controllers/adminController.js";
 
 const router = express.Router();
@@ -29,6 +30,9 @@ router.get("/users", listUsers);
 router.post("/users", createUser);
 router.put("/users/:userId", updateUser);
 router.delete("/users/:userId", deleteUser);
+
+// Danh sách đăng ký mới để admin xem
+router.get("/registrations", listRegistrations);
 
 router.get("/students", listStudents);
 router.post("/students", createStudent);

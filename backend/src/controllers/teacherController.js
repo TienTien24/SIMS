@@ -3,6 +3,7 @@ import * as TeacherModel from "../models/Teacher.js";
 import * as ClassModel from "../models/Class.js";
 import * as GradeModel from "../models/Grade.js";
 import * as NotificationModel from "../models/Notification.js";
+import * as ScheduleModel from "../models/Schedule.js";
 
 const getTeacherIdByUserId = async (userId) => {
   const [rows] = await pool.execute("SELECT id FROM Teachers WHERE user_id = ?", [userId]);
@@ -93,6 +94,35 @@ export const createClass = async (req, res) => {
   }
 };
 
+export const registerSchedule = async (req, res) => {
+  try {
+    const teacherId = await getTeacherIdByUserId(req.user.id);
+    if (!teacherId) return res.status(404).json({ success: false, message: "Không tìm thấy giảng viên" });
+
+    const { class_id, subject_id, semester_id, day_of_week, period, room } = req.body;
+    
+    // Basic validation
+    if (!class_id || !subject_id || !semester_id) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin lớp, môn hoặc học kỳ" });
+    }
+
+    const newSchedule = await ScheduleModel.create(
+      class_id,
+      subject_id,
+      day_of_week || 'Monday',
+      period || '1-3',
+      room || 'Online',
+      teacherId,
+      semester_id
+    );
+
+    res.status(201).json({ success: true, message: "Đăng ký lịch dạy thành công", data: newSchedule });
+  } catch (error) {
+    console.error("Teacher registerSchedule error:", error);
+    res.status(400).json({ success: false, message: error.message || "Đăng ký thất bại" });
+  }
+};
+
 export const bulkEnterGrades = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -174,6 +204,9 @@ export const sendNotification = async (req, res) => {
 export const listNotifications = async (req, res) => {
   try {
     const teacherId = await getTeacherIdByUserId(req.user.id);
+    if (!teacherId) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy thông tin giảng viên" });
+    }
     const list = await NotificationModel.listByTeacher(teacherId);
     res.json({ success: true, message: "Lấy thông báo thành công", data: list });
   } catch (error) {

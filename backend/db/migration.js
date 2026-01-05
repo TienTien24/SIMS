@@ -1,7 +1,7 @@
 import { pool } from "../src/config/db.config.js";
 
 // Import tất cả createTable từ models (cập nhật path)
-import { createTable as createUsersTable } from "../src/models/User.js";
+import { createTable as createUsersTable, createRegistrationLogsTable } from "../src/models/User.js";
 import { createTable as createMajorsTable } from "../src/models/Major.js";
 import { createTable as createClassesTable } from "../src/models/Class.js";
 import { createTable as createStudentsTable } from "../src/models/Student.js";
@@ -55,6 +55,7 @@ export const migrateAll = async () => {
     await migrateTable("Schedules", createSchedulesTable);
     await migrateTable("Grades", createGradesTable);
     await migrateTable("Notifications", createNotificationsTable);
+    await migrateTable("RegistrationLogs", createRegistrationLogsTable);
     console.log("✅ Migration completed!");
   } catch (error) {
     console.error("❌ Migration failed:", error.message);
