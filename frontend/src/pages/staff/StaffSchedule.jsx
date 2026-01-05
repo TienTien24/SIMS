@@ -206,8 +206,8 @@ export default function StaffSchedule() {
                     <td>{s.day_of_week}</td>
                     <td>{s.period}</td>
                     <td>{s.room}</td>
-                    <td>{s.class_name}</td>       {/* Đã join từ backend */}
-                    <td>{s.subject_name}</td>     {/* Đã join từ backend */}
+                    <td>{s.class_name}</td>       
+                    <td>{s.subject_name}</td>     
                   </tr>
                 ))}
               </tbody>
